@@ -2,4 +2,6 @@ Qt 5 based QML / shaders example
 
 Shows the effect of motion blur on animations.
 
+Use run.sh for the smoothest result, it sets some environment variables that attempt to enable vsync (on NVIDIA drivers) and threaded rendering in the Qt Quick 2 scene graph.
+
 Depends on git://code.openbossa.org/projects/qtquickstyles.git
