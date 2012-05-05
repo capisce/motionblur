@@ -14,6 +14,7 @@ class Controller : public QObject
     Q_PROPERTY(bool followMouse READ followMouse WRITE setFollowMouse NOTIFY followMouseChanged)
     Q_PROPERTY(bool paused READ paused WRITE setPaused NOTIFY pausedChanged)
     Q_PROPERTY(qreal velocity READ velocity WRITE setVelocity NOTIFY velocityChanged)
+    Q_PROPERTY(int skippedFrames READ skippedFrames NOTIFY skippedFramesChanged)
     Q_PROPERTY(QPointF currentPos READ currentPos NOTIFY currentPosChanged)
     Q_PROPERTY(QPointF currentVelocity READ currentVelocity NOTIFY currentVelocityChanged)
 
@@ -23,6 +24,7 @@ public:
     GETTER(bool, frameSkipEnabled)
     GETTER(bool, followMouse)
     GETTER(bool, paused)
+    GETTER(int, skippedFrames)
     GETTER(QPointF, currentPos)
     GETTER(QPointF, currentVelocity)
     GETTER(qreal, velocity)
@@ -61,6 +63,7 @@ signals:
     void currentPosChanged();
     void followMouseChanged();
     void pausedChanged();
+    void skippedFramesChanged();
 
 private:
     void initialize();
@@ -72,6 +75,7 @@ private:
     bool m_followMouse;
     bool m_paused;
     qreal m_velocity;
+    int m_skippedFrames;
 
     bool m_initialized;
     QPixmap m_background;
@@ -101,6 +105,8 @@ private:
     QPointF m_currentPos;
     QPointF m_targetPos;
     QPoint m_mousePos;
+
+    QTime m_time;
 };
 
 Controller::Controller(QWindow *view)
@@ -109,6 +115,7 @@ Controller::Controller(QWindow *view)
     , m_followMouse(false)
     , m_paused(false)
     , m_velocity(0.02)
+    , m_skippedFrames(0)
     , m_frame(0)
     , m_pos(0)
     , m_hologram(false)
@@ -178,6 +185,20 @@ void Controller::update()
 
         emit currentPosChanged();
         emit currentVelocityChanged();
+    }
+
+    if (m_time.isNull()) {
+        m_time.start();
+    } else {
+        qreal elapsed = m_time.elapsed();
+        qreal refresh = 1000. / m_view->screen()->refreshRate();
+        qreal hi = 1.35 * refresh;
+        if (elapsed > hi) {
+            ++m_skippedFrames;
+            emit skippedFramesChanged();
+        }
+
+        m_time.restart();
     }
 
     m_frame++;

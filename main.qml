@@ -245,6 +245,10 @@ Rectangle {
             Text {
                 text: "Screen refresh: " + screen.refreshRate + " Hz"
             }
+
+            Text {
+                text: "Missed frames: " + controller.skippedFrames
+            }
         }
     }
 
