@@ -1,28 +1,6 @@
 #include <QtGui>
 #include <QtQuick>
 
-static void frameRendered()
-{
-    static int frameCount = 0;
-    static QTime lastTime = QTime::currentTime();
-
-    ++frameCount;
-
-    const QTime currentTime = QTime::currentTime();
-
-    const int interval = 2500;
-
-    const int delta = lastTime.msecsTo(currentTime);
-
-    if (delta > interval) {
-        qreal fps = 1000.0 * frameCount / delta;
-        qDebug() << "FPS:" << fps;
-
-        frameCount = 0;
-        lastTime = currentTime;
-    }
-}
-
 #define GETTER(type, name) \
     type name() const { return m_ ## name; }
 #define SETTER(name) \
@@ -203,7 +181,6 @@ void Controller::update()
     }
 
     m_frame++;
-    frameRendered();
 }
 
 class View : public QQuickView

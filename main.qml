@@ -203,6 +203,10 @@ Rectangle {
                 target: controller
                 property: "paused"
             }
+
+            Text {
+                text: "FPS: " + fpsTimer.fps
+            }
         }
     }
 
@@ -253,9 +257,24 @@ Rectangle {
         }
     }
 
+    property int frame: 0
+
+    Timer {
+        id: fpsTimer
+        property real fps: 0
+        repeat: true
+        running: true
+        interval: 1000
+        onTriggered: {
+            fps = frame
+            frame = 0
+        }
+    }
+
     onTChanged: {
         update() // force continuous animation
         if (!controller.paused)
             time += 1.0 / screen.refreshRate
+        ++frame
     }
 }
