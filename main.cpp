@@ -77,23 +77,9 @@ private:
     qreal m_velocity;
     int m_skippedFrames;
 
-    bool m_initialized;
-    QPixmap m_background;
-    QPixmap m_sprite;
     QPointF m_last;
 
     int m_frame;
-
-    GLuint m_texture;
-    QOpenGLShaderProgram *m_program;
-
-    int m_vertexLocation;
-    int m_textureCoordLocation;
-    int m_textureLocation;
-    int m_velocityLocation;
-    int m_timeLocation;
-    int m_shadowOffsetLocation;
-    int m_controlsLocation;
 
     qreal m_pos;
 
