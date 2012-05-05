@@ -10,6 +10,8 @@ Rectangle {
         id: contents
         anchors.fill: parent
 
+        property bool blurredPanes: false
+
         Image {
             source: "background.png"
             smooth: true
@@ -127,7 +129,7 @@ Rectangle {
                     "    vec4 color = vec4(0.0);\n" +
                     "    for (int i = 0; i < " + blurSamples + "; ++i) {\n" +
                     "       vec2 modulatedCoords = qt_TexCoord0 + motionBlurFactor *\n" +
-                    "                              vec2(velocityX, velocityY) * (float(i) * (1.0 / " + blurSamples + ") - 0.5);\n" +
+                    "                              vec2(velocityX, velocityY) * (float(i) * (1.0 / " + Math.max(blurSamples - 1, 1) + ") - 0.5);\n" +
                     "       color += sample(modulatedCoords);\n" +
                     "    }\n" +
                     "    color = color * (1.0 / " + blurSamples + ");\n" +
@@ -157,19 +159,36 @@ Rectangle {
         }
     }
 
+    Blur {
+        anchors.fill: controlspane
+        source: contents
+        enabled: contents.blurredPanes
+        blurSamples: effect.blurSamples
+    }
+
+    Blur {
+        anchors.fill: velocitypane
+        source: contents
+        enabled: contents.blurredPanes
+        blurSamples: effect.blurSamples
+    }
+
     Pane {
         id: controlspane
         x: hovered ? -10 : 20 - width
 
         anchors.verticalCenter: parent.verticalCenter
 
-        width: 200
-        height: parent.height * 0.8
+        width: 240
+        height: column.height + 20
 
         Column {
-            anchors.fill: parent
-            anchors.margins: 10
-            anchors.leftMargin: 20
+            id: column
+
+            x: 20
+
+            width: parent.width
+            anchors.verticalCenter: parent.verticalCenter
             spacing: 10
 
             Toggle {
@@ -209,8 +228,18 @@ Rectangle {
                 property: "paused"
             }
 
+            Toggle {
+                text: "Blurred panes"
+                target: contents
+                property: "blurredPanes"
+            }
+
             Text {
-                text: "FPS: " + fpsTimer.fps
+                text: "Frames per second: " + fpsTimer.fps + " Hz"
+            }
+
+            Text {
+                text: "Screen refresh: " + screen.refreshRate + " Hz"
             }
         }
     }
@@ -221,8 +250,8 @@ Rectangle {
 
         anchors.horizontalCenter: parent.horizontalCenter
 
-        width: parent.width * 0.8
-        height: 200
+        width: parent.width * 0.6
+        height: 180
 
         Column {
             anchors.fill: parent
@@ -237,8 +266,8 @@ Rectangle {
             }
             
             PaneSlider {
-                value: 0.02
-                maximum: 0.16
+                value: 0.01
+                maximum: 0.18
                 target: controller
                 property: "velocity"
             }

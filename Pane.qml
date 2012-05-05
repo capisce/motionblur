@@ -6,7 +6,7 @@ Rectangle {
     layer.enabled: true
 
     id: pane
-    radius: 10
+    radius: 6
     color: "white"
     opacity: hovered ? 0.6 : 0.2
 

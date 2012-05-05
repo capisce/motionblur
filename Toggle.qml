@@ -5,7 +5,7 @@ import QtUiStyle 1.0
 CheckBox {
     id: checkBox
     width: 140
-    height: 40
+    height: 24
 
     property var target
     property string property
