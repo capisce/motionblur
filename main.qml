@@ -128,11 +128,11 @@ Rectangle {
                     "{\n" +
                     "    vec4 color = vec4(0.0);\n" +
                     "    for (int i = 0; i < " + blurSamples + "; ++i) {\n" +
-                    "       vec2 modulatedCoords = qt_TexCoord0 + motionBlurFactor *\n" +
-                    "                              vec2(velocityX, velocityY) * (float(i) * (1.0 / " + Math.max(blurSamples - 1, 1) + ") - 0.5);\n" +
+                    "       vec2 modulatedCoords = qt_TexCoord0 + vec2(motionBlurFactor) *\n" +
+                    "                              vec2(velocityX, velocityY) * (float(i) * (1.0 / " + Math.max(blurSamples - 1, 1) + ".0) - 0.5);\n" +
                     "       color += sample(modulatedCoords);\n" +
                     "    }\n" +
-                    "    color = color * (1.0 / " + blurSamples + ");\n" +
+                    "    color = color * (1.0 / " + blurSamples + ".0);\n" +
                     "    gl_FragColor = qt_Opacity * color;\n" +
                     "}\n";
 
