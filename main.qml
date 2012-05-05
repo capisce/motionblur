@@ -56,6 +56,7 @@ Rectangle {
             property real velocityY: controller.currentVelocity.y * 0.5
             property int blurSamples
 
+            property bool motionBlurEnabled: motionBlurFactor > 0.001
             property bool wobbleEnabled: wobbleFactor > 0.001
             property bool hologramEnabled: hologramFactor > 0.001
 
@@ -67,6 +68,7 @@ Rectangle {
 
             Component.onCompleted: generateShader()
             onBlurSamplesChanged: generateShader()
+            onMotionBlurEnabledChanged: generateShader()
             onWobbleEnabledChanged: generateShader()
             onHologramEnabledChanged: generateShader()
 
@@ -123,16 +125,18 @@ Rectangle {
                         "}\n";
                 }
 
+                var samples = motionBlurEnabled ? blurSamples : 1
+
                 fragmentShaderText +=
                     "void main()\n" +
                     "{\n" +
                     "    vec4 color = vec4(0.0);\n" +
-                    "    for (int i = 0; i < " + blurSamples + "; ++i) {\n" +
+                    "    for (int i = 0; i < " + samples + "; ++i) {\n" +
                     "       vec2 modulatedCoords = qt_TexCoord0 + vec2(motionBlurFactor) *\n" +
-                    "                              vec2(velocityX, velocityY) * (float(i) * (1.0 / " + Math.max(blurSamples - 1, 1) + ".0) - 0.5);\n" +
+                    "                              vec2(velocityX, velocityY) * (float(i) * (1.0 / " + Math.max(samples - 1, 1) + ".0) - 0.5);\n" +
                     "       color += sample(modulatedCoords);\n" +
                     "    }\n" +
-                    "    color = color * (1.0 / " + blurSamples + ".0);\n" +
+                    "    color = color * (1.0 / " + samples + ".0);\n" +
                     "    gl_FragColor = qt_Opacity * color;\n" +
                     "}\n";
 
