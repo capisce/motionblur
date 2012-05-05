@@ -32,35 +32,26 @@ class Controller : public QObject
 {
     Q_OBJECT
 
-    Q_PROPERTY(bool motionBlurEnabled READ motionBlurEnabled WRITE setMotionBlurEnabled NOTIFY motionBlurEnabledChanged)
     Q_PROPERTY(bool frameSkipEnabled READ frameSkipEnabled WRITE setFrameSkipEnabled NOTIFY frameSkipEnabledChanged)
     Q_PROPERTY(bool followMouse READ followMouse WRITE setFollowMouse NOTIFY followMouseChanged)
     Q_PROPERTY(bool paused READ paused WRITE setPaused NOTIFY pausedChanged)
     Q_PROPERTY(qreal velocity READ velocity WRITE setVelocity NOTIFY velocityChanged)
-    Q_PROPERTY(int blurSamples READ blurSamples WRITE setBlurSamples NOTIFY blurSamplesChanged)
     Q_PROPERTY(QPointF currentPos READ currentPos NOTIFY currentPosChanged)
     Q_PROPERTY(QPointF currentVelocity READ currentVelocity NOTIFY currentVelocityChanged)
 
 public:
     Controller(QWindow *view);
 
-    GETTER(bool, motionBlurEnabled)
     GETTER(bool, frameSkipEnabled)
     GETTER(bool, followMouse)
     GETTER(bool, paused)
     GETTER(QPointF, currentPos)
     GETTER(QPointF, currentVelocity)
     GETTER(qreal, velocity)
-    GETTER(int, blurSamples)
 
 public slots:
     void update();
     void mouseMoved(const QPoint &pos);
-
-    void setMotionBlurEnabled(bool value)
-    {
-        SETTER(motionBlurEnabled)
-    }
 
     void setFrameSkipEnabled(bool value)
     {
@@ -70,11 +61,6 @@ public slots:
     void setVelocity(qreal value)
     {
         SETTER(velocity)
-    }
-
-    void setBlurSamples(int value)
-    {
-        SETTER(blurSamples)
     }
 
     void setPaused(bool value)
@@ -91,10 +77,8 @@ public slots:
     }
 
 signals:
-    void motionBlurEnabledChanged();
     void frameSkipEnabledChanged();
     void velocityChanged();
-    void blurSamplesChanged();
     void currentVelocityChanged();
     void currentPosChanged();
     void followMouseChanged();
@@ -106,12 +90,10 @@ private:
 
     QWindow *m_view;
 
-    bool m_motionBlurEnabled;
     bool m_frameSkipEnabled;
     bool m_followMouse;
     bool m_paused;
     qreal m_velocity;
-    int m_blurSamples;
 
     bool m_initialized;
     QPixmap m_background;
@@ -145,12 +127,10 @@ private:
 
 Controller::Controller(QWindow *view)
     : m_view(view)
-    , m_motionBlurEnabled(true)
     , m_frameSkipEnabled(false)
     , m_followMouse(false)
     , m_paused(false)
     , m_velocity(0.02)
-    , m_blurSamples(10)
     , m_frame(0)
     , m_pos(0)
     , m_hologram(false)

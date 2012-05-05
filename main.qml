@@ -42,13 +42,13 @@ Rectangle {
         id: effect
 
         property variant source: shadersource
-        property real motionBlurFactor: controller.motionBlurEnabled
+        property real motionBlurFactor
         property real wobbleFactor
         property real hologramFactor
         property real time: root.time
         property real velocityX: controller.currentVelocity.x * 0.5
         property real velocityY: controller.currentVelocity.y * 0.5
-        property int blurSamples: controller.blurSamples
+        property int blurSamples
 
         property bool wobbleEnabled: wobbleFactor > 0.001
         property bool hologramEnabled: hologramFactor > 0.001
@@ -169,9 +169,9 @@ Rectangle {
 
             Toggle {
                 text: "Motion blur"
-                target: controller
+                target: effect
                 checked: true
-                property: "motionBlurEnabled"
+                property: "motionBlurFactor"
             }
 
             Toggle {
@@ -246,7 +246,7 @@ Rectangle {
                 maximum: 80
                 tickInterval: 1 
                 stepSize: 1
-                target: controller
+                target: effect
                 property: "blurSamples"
                 instantaneous: false
             }
