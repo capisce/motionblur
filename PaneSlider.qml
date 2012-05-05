@@ -15,10 +15,14 @@ Slider {
 
     property var target
     property string property
+    property bool instantaneous: true
+    property real current: value
+
+    onPressedChanged: current = value
 
     Binding {
         target: slider.target
         property: slider.property
-        value: slider.value
+        value: slider.instantaneous ? slider.value : slider.current
     }
 }

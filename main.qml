@@ -3,6 +3,9 @@ import QtUiComponents 1.0
 import QtUiStyle 1.0
 
 Rectangle {
+    id: root
+    property real time
+
     Image {
         source: "background.png"
         smooth: true
@@ -36,11 +39,19 @@ Rectangle {
     }
         
     ShaderEffect {
+        id: effect
+
         property variant source: shadersource
         property real motionBlurFactor: controller.motionBlurEnabled
+        property real wobbleFactor
+        property real hologramFactor
+        property real time: root.time
         property real velocityX: controller.currentVelocity.x * 0.5
         property real velocityY: controller.currentVelocity.y * 0.5
         property int blurSamples: controller.blurSamples
+
+        property bool wobbleEnabled: wobbleFactor > 0.001
+        property bool hologramEnabled: hologramFactor > 0.001
 
         x: controller.currentPos.x - 128
         y: controller.currentPos.y - 128
@@ -50,20 +61,61 @@ Rectangle {
 
         Component.onCompleted: generateShader()
         onBlurSamplesChanged: generateShader()
+        onWobbleEnabledChanged: generateShader()
+        onHologramEnabledChanged: generateShader()
+
+        Behavior on wobbleFactor { NumberAnimation {} }
+        Behavior on motionBlurFactor { NumberAnimation {} }
+        Behavior on hologramFactor { NumberAnimation {} }
 
         function generateShader() {
             var fragmentShaderText =
-                "uniform lowp sampler2D source;" +
-                "uniform lowp float qt_Opacity;" +
-                "varying highp vec2 qt_TexCoord0;" +
-                "uniform lowp float motionBlurFactor;" +
-                "uniform mediump float velocityX;" +
-                "uniform mediump float velocityY;";
+                "uniform lowp sampler2D source;\n" +
+                "uniform lowp float qt_Opacity;\n" +
+                "uniform highp float time;\n" +
+                "varying highp vec2 qt_TexCoord0;\n" +
+                "uniform lowp float motionBlurFactor;\n" +
+                "uniform lowp float hologramFactor;\n" +
+                "uniform lowp float wobbleFactor;\n" +
+                "uniform mediump float velocityX;\n" +
+                "uniform mediump float velocityY;\n";
 
-            fragmentShaderText +=
-                "vec4 sample(vec2 coords) {\n" +
-                "   return texture2D(source, coords);\n" +
-                "}\n";
+            if (wobbleEnabled) {
+                fragmentShaderText +=
+                    "vec2 wobbleCoords(vec2 coords) {\n" +
+                    "   return coords + wobbleFactor * vec2(0.05 * sin(1.0 * cos(25.0 * (coords.y * coords.y + 0.25 * time))), 0.03 * sin(1.0 * cos(7.0 * (coords.x + 0.23 * time))));\n" +
+                    "}\n";
+            }
+
+            if (wobbleEnabled || hologramEnabled) {
+                fragmentShaderText += "vec4 sample(vec2 coords) {\n";
+
+                if (hologramEnabled) {
+                    fragmentShaderText +=
+                        "   vec2 transformed = 100.0 * vec2(coords.x + 0.05 * sin(4.0 * time + 10.0 * coords.y), coords.y);\n" +
+                        "   vec2 mod = transformed - floor(transformed);\n" +
+                        "   vec2 dist = mod - vec2(0.5);\n" +
+                        "   vec4 delta = mix(vec4(1.0), vec4(1.0, 0.7, 0.7, dot(dist, dist)), hologramFactor);\n";
+                } else {
+                    fragmentShaderText +=
+                        "   vec4 delta = vec4(1.0);\n";
+                }
+
+                if (wobbleEnabled) {
+                    fragmentShaderText +=
+                        "   return delta * texture2D(source, wobbleCoords(coords));\n";
+                } else {
+                    fragmentShaderText +=
+                        "   return delta * texture2D(source, coords);\n";
+                }
+
+                fragmentShaderText += "}\n";
+            } else {
+                fragmentShaderText +=
+                    "vec4 sample(vec2 coords) {\n" +
+                    "   return texture2D(source, coords);\n" +
+                    "}\n";
+            }
 
             fragmentShaderText +=
                 "void main()\n" +
@@ -120,6 +172,18 @@ Rectangle {
                 target: controller
                 checked: true
                 property: "motionBlurEnabled"
+            }
+
+            Toggle {
+                text: "Wobble"
+                target: effect
+                property: "wobbleFactor"
+            }
+
+            Toggle {
+                text: "Hologram"
+                target: effect
+                property: "hologramFactor"
             }
 
             Toggle {
@@ -184,9 +248,14 @@ Rectangle {
                 stepSize: 1
                 target: controller
                 property: "blurSamples"
+                instantaneous: false
             }
         }
     }
 
-    onTChanged: update() // force continuous animation
+    onTChanged: {
+        update() // force continuous animation
+        if (!controller.paused)
+            time += 1.0 / screen.refreshRate
+    }
 }
