@@ -85,25 +85,33 @@ void interpolate(qreal target, qreal &current)
 #define SETTER(name) \
     if (value == m_ ## name) return; m_ ## name = value; emit name ## Changed();
 
-class Renderer : public QObject
+class Controller : public QObject
 {
     Q_OBJECT
 
     Q_PROPERTY(bool motionBlurEnabled READ motionBlurEnabled WRITE setMotionBlurEnabled NOTIFY motionBlurEnabledChanged)
     Q_PROPERTY(bool frameSkipEnabled READ frameSkipEnabled WRITE setFrameSkipEnabled NOTIFY frameSkipEnabledChanged)
     Q_PROPERTY(bool followMouse READ followMouse WRITE setFollowMouse NOTIFY followMouseChanged)
+    Q_PROPERTY(bool paused READ paused WRITE setPaused NOTIFY pausedChanged)
     Q_PROPERTY(qreal velocity READ velocity WRITE setVelocity NOTIFY velocityChanged)
+    Q_PROPERTY(int blurSamples READ blurSamples WRITE setBlurSamples NOTIFY blurSamplesChanged)
+    Q_PROPERTY(QPointF currentPos READ currentPos NOTIFY currentPosChanged)
+    Q_PROPERTY(QPointF currentVelocity READ currentVelocity NOTIFY currentVelocityChanged)
 
 public:
-    Renderer(QWindow *view);
+    Controller(QWindow *view);
 
     GETTER(bool, motionBlurEnabled)
     GETTER(bool, frameSkipEnabled)
     GETTER(bool, followMouse)
+    GETTER(bool, paused)
+    GETTER(QPointF, currentPos)
+    GETTER(QPointF, currentVelocity)
     GETTER(qreal, velocity)
+    GETTER(int, blurSamples)
 
 public slots:
-    void render();
+    void update();
     void mouseMoved(const QPoint &pos);
 
     void setMotionBlurEnabled(bool value)
@@ -121,6 +129,16 @@ public slots:
         SETTER(velocity)
     }
 
+    void setBlurSamples(int value)
+    {
+        SETTER(blurSamples)
+    }
+
+    void setPaused(bool value)
+    {
+        SETTER(paused)
+    }
+
     void setFollowMouse(bool value)
     {
         SETTER(followMouse)
@@ -133,7 +151,11 @@ signals:
     void motionBlurEnabledChanged();
     void frameSkipEnabledChanged();
     void velocityChanged();
+    void blurSamplesChanged();
+    void currentVelocityChanged();
+    void currentPosChanged();
     void followMouseChanged();
+    void pausedChanged();
 
 private:
     void initialize();
@@ -144,7 +166,9 @@ private:
     bool m_motionBlurEnabled;
     bool m_frameSkipEnabled;
     bool m_followMouse;
+    bool m_paused;
     qreal m_velocity;
+    int m_blurSamples;
 
     bool m_initialized;
     QPixmap m_background;
@@ -175,17 +199,20 @@ private:
     qreal m_motionBlurF;
     qreal m_shadowF;
 
+    QPointF m_currentVelocity;
     QPointF m_currentPos;
     QPointF m_targetPos;
     QPoint m_mousePos;
 };
 
-Renderer::Renderer(QWindow *view)
+Controller::Controller(QWindow *view)
     : m_view(view)
     , m_motionBlurEnabled(true)
     , m_frameSkipEnabled(false)
     , m_followMouse(false)
+    , m_paused(false)
     , m_velocity(0.02)
+    , m_blurSamples(10)
     , m_initialized(false)
     , m_background(QLatin1String("background.png"))
     , m_sprite(QLatin1String("earth.png"))
@@ -201,7 +228,7 @@ Renderer::Renderer(QWindow *view)
 {
 }
 
-void Renderer::initialize()
+void Controller::initialize()
 {
     glGenTextures(1, &m_texture);
     glBindTexture(GL_TEXTURE_2D, m_texture);
@@ -230,7 +257,7 @@ void Renderer::initialize()
     m_controlsLocation = m_program->uniformLocation("controls");
 }
 
-void Renderer::mouseMoved(const QPoint &pos)
+void Controller::mouseMoved(const QPoint &pos)
 {
     m_mousePos = pos;
 }
@@ -238,7 +265,7 @@ void Renderer::mouseMoved(const QPoint &pos)
 const int tw = 256;
 const int th = 256;
 
-void Renderer::adjustAnimationPos()
+void Controller::adjustAnimationPos()
 {
     qreal minT = 0;
     qreal minDistSqr = std::numeric_limits<qreal>::max();
@@ -260,31 +287,17 @@ void Renderer::adjustAnimationPos()
     m_pos = minT;
 }
 
-void Renderer::render()
+void Controller::update()
 {
-    if (!m_initialized) {
-        initialize();
-        m_initialized = true;
-    }
-
-    glClear(GL_COLOR_BUFFER_BIT);
-
     int width = m_view->width();
     int height = m_view->height();
 
-    QOpenGLPaintDevice device(width, height);
-
-    QPainter p(&device);
-    p.scale(0.5, 0.5);
-    p.drawTiledPixmap(0, 0, 2 * width, 2 * height, m_background);
-    p.end();
-
-    if (!m_frameSkipEnabled || (m_frame & 1)) {
+    if (!m_paused && (!m_frameSkipEnabled || (m_frame & 1))) {
         qreal x, y;
 
         if (m_followMouse) {
             x = m_mousePos.x() - tw / 2;
-            y = height - m_mousePos.y() - th / 2;
+            y = m_mousePos.y() - th / 2;
         } else {
             m_pos += m_frameSkipEnabled ? 2 * m_velocity : m_velocity;
 
@@ -295,59 +308,18 @@ void Renderer::render()
         m_targetPos = QPointF(x, y);
 
         m_currentPos += 0.5 * (m_targetPos - m_currentPos);
+
+        if (m_frameSkipEnabled) {
+            m_currentPos += 0.5 * (m_targetPos - m_currentPos);
+        }
+
+        m_currentVelocity = QPointF((m_last.x() - m_currentPos.x()) / tw, (m_last.y() - m_currentPos.y()) / th);
+
+        m_last = m_currentPos;
+
+        emit currentPosChanged();
+        emit currentVelocityChanged();
     }
-
-    qreal x = m_currentPos.x();
-    qreal y = m_currentPos.y();
-
-    glBindTexture(GL_TEXTURE_2D, m_texture);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-
-    QVector<GLfloat> vertices;
-    QVector<GLfloat> texCoords;
-
-    QPointF shadowOffset(40, -30);
-
-    QPointF delta(qAbs(shadowOffset.x()) + qAbs(m_last.x() - x), qAbs(shadowOffset.y()) + qAbs(m_last.y() - y));
-
-    qreal vx0 = -1.0 + (2.0 * (x - delta.x())) / width;
-    qreal vx1 = -1.0 + (2.0 * (x + tw + delta.x())) / width;
-
-    qreal vy0 = -1.0 + (2.0 * (y - delta.y())) / height;
-    qreal vy1 = -1.0 + (2.0 * (y + th + delta.y())) / height;
-
-    vertices << vx0 << vy0 << vx1 << vy0 << vx1 << vy1
-             << vx0 << vy0 << vx1 << vy1 << vx0 << vy1;
-
-    qreal tx0 = -delta.x() / tw;
-    qreal tx1 = 1 + delta.x() / tw;
-    qreal ty0 = -delta.y() / th;
-    qreal ty1 = 1 + delta.y() / th;
-
-    texCoords << tx0 << ty0 << tx1 << ty0 << tx1 << ty1
-              << tx0 << ty0 << tx1 << ty1 << tx0 << ty1;
-
-    m_program->bind();
-    m_program->enableAttributeArray(m_vertexLocation);
-    m_program->enableAttributeArray(m_textureCoordLocation);
-    m_program->setAttributeArray(m_vertexLocation, vertices.data(), 2);
-    m_program->setAttributeArray(m_textureCoordLocation, texCoords.data(), 2);
-    m_program->setUniformValue(m_textureLocation, 0);
-    m_program->setUniformValue(m_timeLocation, GLfloat(m_frame / 120.0));
-    m_program->setUniformValue(m_shadowOffsetLocation, QPointF(shadowOffset.x() / tw, shadowOffset.y() / th));
-    m_program->setUniformValue(m_controlsLocation, GLfloat(m_hologramF), GLfloat(m_wobbleF), GLfloat(m_motionBlurF), GLfloat(m_shadowF));
-
-    m_program->setUniformValue(m_velocityLocation, (m_last.x() - x) / tw, (m_last.y() - y) / th);
-
-    glDrawArrays(GL_TRIANGLES, 0, 6);
-
-    m_program->disableAttributeArray(m_vertexLocation);
-    m_program->disableAttributeArray(m_textureCoordLocation);
-    m_program->release();
-
-    glDisable(GL_BLEND);
-    glBindTexture(GL_TEXTURE_2D, 0);
 
     interpolate(m_hologram, m_hologramF);
     interpolate(m_wobble, m_wobbleF);
@@ -356,9 +328,6 @@ void Renderer::render()
 
     m_frame++;
     frameRendered();
-
-    if (!m_frameSkipEnabled || (m_frame & 1))
-        m_last = QPointF(x, y);
 }
 
 class View : public QQuickView
@@ -382,18 +351,17 @@ int main(int argc, char **argv)
 
     View view;
 
-    Renderer renderer(&view);
+    Controller controller(&view);
 
-    view.setClearBeforeRendering(false);
-    view.rootContext()->setContextProperty("renderer", &renderer);
+    view.rootContext()->setContextProperty("controller", &controller);
     view.rootContext()->setContextProperty("screen", view.screen());
     view.setSource(QUrl("main.qml"));
     view.setResizeMode(QQuickView::SizeRootObjectToView);
     view.setGeometry(0, 0, 1024, 768);
     view.showFullScreen();
 
-    QObject::connect(&view, SIGNAL(beforeRendering()), &renderer, SLOT(render()), Qt::DirectConnection);
-    QObject::connect(&view, SIGNAL(mouseMoved(const QPoint &)), &renderer, SLOT(mouseMoved(const QPoint &)));
+    QObject::connect(&view, SIGNAL(afterRendering()), &controller, SLOT(update()));
+    QObject::connect(&view, SIGNAL(mouseMoved(const QPoint &)), &controller, SLOT(mouseMoved(const QPoint &)));
 
     return app.exec();
 }
