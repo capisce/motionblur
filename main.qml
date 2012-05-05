@@ -6,131 +6,136 @@ Rectangle {
     id: root
     property real time
 
-    Image {
-        source: "background.png"
-        smooth: true
-        width: parent.width * 2
-        height: parent.height * 2
-        scale: 0.5
-        transformOrigin: Item.TopLeft
-        fillMode: Image.Tile
-    }
-
-    Rectangle {
-        id: shadersource
-
-        width: 512
-        height: 512
-
-        color: "transparent"
+    Item {
+        id: contents
+        anchors.fill: parent
 
         Image {
-            source: "earth.png"
+            source: "background.png"
+            smooth: true
+            width: parent.width * 2
+            height: parent.height * 2
+            scale: 0.5
+            transformOrigin: Item.TopLeft
+            fillMode: Image.Tile
         }
 
-        visible: false
+        Rectangle {
+            id: shadersource
 
-        layer.enabled: true
-        layer.smooth: true
-        layer.mipmap: true
-        layer.wrapMode: ShaderEffectSource.ClampToEdge
-        layer.sourceRect: Qt.rect(-256, -256, 1024, 1024)
-        layer.textureSize: Qt.size(1024, 1024)
-    }
-        
-    ShaderEffect {
-        id: effect
+            width: 512
+            height: 512
 
-        property variant source: shadersource
-        property real motionBlurFactor
-        property real wobbleFactor
-        property real hologramFactor
-        property real time: root.time
-        property real velocityX: controller.currentVelocity.x * 0.5
-        property real velocityY: controller.currentVelocity.y * 0.5
-        property int blurSamples
+            color: "transparent"
 
-        property bool wobbleEnabled: wobbleFactor > 0.001
-        property bool hologramEnabled: hologramFactor > 0.001
-
-        x: controller.currentPos.x - 128
-        y: controller.currentPos.y - 128
-
-        width: 512
-        height: 512
-
-        Component.onCompleted: generateShader()
-        onBlurSamplesChanged: generateShader()
-        onWobbleEnabledChanged: generateShader()
-        onHologramEnabledChanged: generateShader()
-
-        Behavior on wobbleFactor { NumberAnimation {} }
-        Behavior on motionBlurFactor { NumberAnimation {} }
-        Behavior on hologramFactor { NumberAnimation {} }
-
-        function generateShader() {
-            var fragmentShaderText =
-                "uniform lowp sampler2D source;\n" +
-                "uniform lowp float qt_Opacity;\n" +
-                "uniform highp float time;\n" +
-                "varying highp vec2 qt_TexCoord0;\n" +
-                "uniform lowp float motionBlurFactor;\n" +
-                "uniform lowp float hologramFactor;\n" +
-                "uniform lowp float wobbleFactor;\n" +
-                "uniform mediump float velocityX;\n" +
-                "uniform mediump float velocityY;\n";
-
-            if (wobbleEnabled) {
-                fragmentShaderText +=
-                    "vec2 wobbleCoords(vec2 coords) {\n" +
-                    "   return coords + wobbleFactor * vec2(0.05 * sin(1.0 * cos(25.0 * (coords.y * coords.y + 0.25 * time))), 0.03 * sin(1.0 * cos(7.0 * (coords.x + 0.23 * time))));\n" +
-                    "}\n";
+            Image {
+                source: "earth.png"
             }
 
-            if (wobbleEnabled || hologramEnabled) {
-                fragmentShaderText += "vec4 sample(vec2 coords) {\n";
+            visible: false
 
-                if (hologramEnabled) {
-                    fragmentShaderText +=
-                        "   vec2 transformed = 100.0 * vec2(coords.x + 0.05 * sin(4.0 * time + 10.0 * coords.y), coords.y);\n" +
-                        "   vec2 mod = transformed - floor(transformed);\n" +
-                        "   vec2 dist = mod - vec2(0.5);\n" +
-                        "   vec4 delta = mix(vec4(1.0), vec4(1.0, 0.7, 0.7, dot(dist, dist)), hologramFactor);\n";
-                } else {
-                    fragmentShaderText +=
-                        "   vec4 delta = vec4(1.0);\n";
-                }
+            layer.enabled: true
+            layer.smooth: true
+            layer.mipmap: true
+            layer.wrapMode: ShaderEffectSource.ClampToEdge
+            layer.sourceRect: Qt.rect(-256, -256, 1024, 1024)
+            layer.textureSize: Qt.size(1024, 1024)
+        }
+
+        ShaderEffect {
+            id: effect
+
+            property variant source: shadersource
+            property real motionBlurFactor
+            property real wobbleFactor
+            property real hologramFactor
+            property real time: root.time
+            property real velocityX: controller.currentVelocity.x * 0.5
+            property real velocityY: controller.currentVelocity.y * 0.5
+            property int blurSamples
+
+            property bool wobbleEnabled: wobbleFactor > 0.001
+            property bool hologramEnabled: hologramFactor > 0.001
+
+            x: controller.currentPos.x - 128
+            y: controller.currentPos.y - 128
+
+            width: 512
+            height: 512
+
+            Component.onCompleted: generateShader()
+            onBlurSamplesChanged: generateShader()
+            onWobbleEnabledChanged: generateShader()
+            onHologramEnabledChanged: generateShader()
+
+            Behavior on wobbleFactor { NumberAnimation {} }
+            Behavior on motionBlurFactor { NumberAnimation {} }
+            Behavior on hologramFactor { NumberAnimation {} }
+
+            function generateShader() {
+                var fragmentShaderText =
+                    "uniform lowp sampler2D source;\n" +
+                    "uniform lowp float qt_Opacity;\n" +
+                    "uniform highp float time;\n" +
+                    "varying highp vec2 qt_TexCoord0;\n" +
+                    "uniform lowp float motionBlurFactor;\n" +
+                    "uniform lowp float hologramFactor;\n" +
+                    "uniform lowp float wobbleFactor;\n" +
+                    "uniform mediump float velocityX;\n" +
+                    "uniform mediump float velocityY;\n";
 
                 if (wobbleEnabled) {
                     fragmentShaderText +=
-                        "   return delta * texture2D(source, wobbleCoords(coords));\n";
-                } else {
-                    fragmentShaderText +=
-                        "   return delta * texture2D(source, coords);\n";
+                        "vec2 wobbleCoords(vec2 coords) {\n" +
+                        "   return coords + wobbleFactor * vec2(0.05 * sin(1.0 * cos(25.0 * (coords.y * coords.y + 0.25 * time))), 0.03 * sin(1.0 * cos(7.0 * (coords.x + 0.23 * time))));\n" +
+                        "}\n";
                 }
 
-                fragmentShaderText += "}\n";
-            } else {
+                if (wobbleEnabled || hologramEnabled) {
+                    fragmentShaderText += "vec4 sample(vec2 coords) {\n";
+
+                    if (hologramEnabled) {
+                        fragmentShaderText +=
+                            "   vec2 transformed = 100.0 * vec2(coords.x + 0.05 * sin(4.0 * time + 10.0 * coords.y), coords.y);\n" +
+                            "   vec2 mod = transformed - floor(transformed);\n" +
+                            "   vec2 dist = mod - vec2(0.5);\n" +
+                            "   vec4 delta = mix(vec4(1.0), vec4(1.0, 0.7, 0.7, dot(dist, dist)), hologramFactor);\n";
+                    } else {
+                        fragmentShaderText +=
+                            "   vec4 delta = vec4(1.0);\n";
+                    }
+
+                    if (wobbleEnabled) {
+                        fragmentShaderText +=
+                            "   return delta * texture2D(source, wobbleCoords(coords));\n";
+                    } else {
+                        fragmentShaderText +=
+                            "   return delta * texture2D(source, coords);\n";
+                    }
+
+                    fragmentShaderText += "}\n";
+                } else {
+                    fragmentShaderText +=
+                        "vec4 sample(vec2 coords) {\n" +
+                        "   return texture2D(source, coords);\n" +
+                        "}\n";
+                }
+
                 fragmentShaderText +=
-                    "vec4 sample(vec2 coords) {\n" +
-                    "   return texture2D(source, coords);\n" +
+                    "void main()\n" +
+                    "{\n" +
+                    "    vec4 color = vec4(0.0);\n" +
+                    "    for (int i = 0; i < " + blurSamples + "; ++i) {\n" +
+                    "       vec2 modulatedCoords = qt_TexCoord0 + motionBlurFactor *\n" +
+                    "                              vec2(velocityX, velocityY) * (float(i) * (1.0 / " + blurSamples + ") - 0.5);\n" +
+                    "       color += sample(modulatedCoords);\n" +
+                    "    }\n" +
+                    "    color = color * (1.0 / " + blurSamples + ");\n" +
+                    "    gl_FragColor = qt_Opacity * color;\n" +
                     "}\n";
+
+                fragmentShader = fragmentShaderText
             }
-
-            fragmentShaderText +=
-                "void main()\n" +
-                "{\n" +
-                "    vec4 color = vec4(0.0);\n" +
-                "    for (int i = 0; i < " + blurSamples + "; ++i) {\n" +
-                "       vec2 modulatedCoords = qt_TexCoord0 + motionBlurFactor *\n" +
-                "                              vec2(velocityX, velocityY) * (float(i) * (1.0 / " + blurSamples + ") - 0.5);\n" +
-                "       color += sample(modulatedCoords);\n" +
-                "    }\n" +
-                "    color = color * (1.0 / " + blurSamples + ");\n" +
-                "    gl_FragColor = qt_Opacity * color;\n" +
-                "}\n";
-
-            fragmentShader = fragmentShaderText
         }
     }
 
