@@ -179,7 +179,7 @@ Rectangle {
 
         anchors.verticalCenter: parent.verticalCenter
 
-        width: 240
+        width: 200
         height: column.height + 20
 
         Column {
@@ -235,7 +235,7 @@ Rectangle {
             }
 
             Text {
-                text: "Frames per second: " + fpsTimer.fps + " Hz"
+                text: "Frame rate: " + fpsTimer.fps + " Hz"
             }
 
             Text {
