@@ -1,0 +1,5 @@
+Qt 5 based QML / shaders example
+
+Shows the effect of motion blur on animations.
+
+Depends on git://code.openbossa.org/projects/qtquickstyles.git
