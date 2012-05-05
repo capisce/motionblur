@@ -158,7 +158,7 @@ void Controller::update()
             x = m_mousePos.x() - tw / 2;
             y = m_mousePos.y() - th / 2;
         } else {
-            m_pos += m_frameSkipEnabled ? 2 * m_velocity : m_velocity;
+            m_pos += (m_frameSkipEnabled ? 2 * m_velocity : m_velocity) * 120. / m_view->screen()->refreshRate();
 
             x = (width - tw) * (0.5 + 0.5 * qSin(m_pos));
             y = (height - th) * (0.5 + 0.5 * qSin(0.47 * m_pos));
