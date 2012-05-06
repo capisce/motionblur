@@ -322,7 +322,7 @@ Rectangle {
             }
             
             PaneSlider {
-                value: 20
+                value: 50
                 minimum: 1
                 maximum: 80
                 tickInterval: 1 
@@ -345,6 +345,35 @@ Rectangle {
         onTriggered: {
             fps = frame
             frame = 0
+        }
+    }
+
+    property bool initialized: false
+
+    Timer {
+        id: initTimer
+        repeat: false
+        running: true
+        interval: 1000
+        onTriggered: {
+            initialized = true
+            console.log("Blur samples initialized to " + effect.blurSamples)
+        }
+    }
+
+    Connections {
+        target: controller
+        property bool ignore: false
+        onSkippedFramesChanged: {
+            if (initialized || effect.blurSamples <= 4)
+                return;
+            ignore = !ignore;
+            // changing blurSamples _will_ result in skipped frames
+            // so ignore every other change
+            if (ignore)
+                return;
+            effect.blurSamples = Math.floor(effect.blurSamples * 0.8);
+            initTimer.restart();
         }
     }
 
