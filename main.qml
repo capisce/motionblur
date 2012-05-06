@@ -229,7 +229,7 @@ Rectangle {
         anchors.verticalCenter: parent.verticalCenter
 
         width: 220
-        height: column.height + 20
+        height: column.height + 32
 
         Column {
             id: column
@@ -296,6 +296,7 @@ Rectangle {
                 text: "Recalibrate"
                 onClicked: {
                     root.calibrating = true
+                    root.initialized = false
                     root.panesEnabled = false
                     controlspane.hovered = false
                     blurSlider.value = 50
