@@ -4,6 +4,7 @@ import QtUiStyle 1.0
 
 Rectangle {
     id: root
+    color: "black"
     property real time
     property bool panesEnabled: false
     property bool calibrating: true
@@ -15,13 +16,9 @@ Rectangle {
         property bool blurredPanes: false
 
         Image {
-            source: "background.png"
+            source: "background.jpg"
             smooth: true
-            width: parent.width * 2
-            height: parent.height * 2
-            scale: 0.5
-            transformOrigin: Item.TopLeft
-            fillMode: Image.Tile
+            anchors.fill: parent
         }
 
         Rectangle {
@@ -411,7 +408,7 @@ Rectangle {
     Pane {
         id: calibrationPane
         anchors.centerIn: parent
-        opacity: root.calibrating ? 0.6 : 0
+        opacity: root.calibrating ? 0.5 : 0
 
         width: calibrationColumn.width * 1.2
         height: calibrationColumn.height * 1.2
