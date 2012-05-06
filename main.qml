@@ -80,8 +80,6 @@ Rectangle {
             layer.smooth: true
             layer.mipmap: true
             layer.wrapMode: ShaderEffectSource.ClampToEdge
-            layer.sourceRect: Qt.rect(-256, -256, 1024, 1024)
-            layer.textureSize: Qt.size(1024, 1024)
 
             Component.onCompleted: generateShader()
             onWobbleEnabledChanged: generateShader()
@@ -152,19 +150,30 @@ Rectangle {
         ShaderEffect {
             id: effect
 
+            property real cx: controller.currentPos.x
+            property real cy: controller.currentPos.y
+            property real lx: controller.lastPos.x
+            property real ly: controller.lastPos.y
+
             property variant source: sourceeffect
             property real motionBlurFactor
-            property real velocityX: controller.currentVelocity.x * 0.5
-            property real velocityY: controller.currentVelocity.y * 0.5
+            property real dx: cx - lx
+            property real dy: cy - ly
+            property real avx: Math.abs(dx)
+            property real avy: Math.abs(dy)
+            property real vx: dx / 256
+            property real vy: dy / 256
+            property real dtx: 0.5 * avx / 256
+            property real dty: 0.5 * avy / 256
             property int blurSamples
 
             property bool motionBlurEnabled: motionBlurFactor > 0.001
 
-            x: controller.currentPos.x - 128
-            y: controller.currentPos.y - 128
+            x: (cx + lx - avx) * 0.5 - 128
+            y: (cy + ly - avy) * 0.5 - 128
 
-            width: 512
-            height: 512
+            width: 256 + avx
+            height: 256 + avy
 
             Component.onCompleted: generateShader()
             onBlurSamplesChanged: generateShader()
@@ -172,14 +181,38 @@ Rectangle {
 
             Behavior on motionBlurFactor { NumberAnimation {} }
 
+            vertexShader: "
+                uniform highp mat4 qt_Matrix;
+                attribute highp vec4 qt_Vertex;
+                attribute highp vec2 qt_MultiTexCoord0;
+                varying highp vec2 qt_TexCoord0;
+                uniform highp float dtx;
+                uniform highp float dty;
+                void main() {
+                    highp vec2 t = qt_MultiTexCoord0;
+                    if (t.x < 0.5) {
+                        t.x -= dtx;
+                    } else {
+                        t.x += dtx;
+                    }
+                    if (t.y < 0.5) {
+                        t.y -= dty;
+                    } else {
+                        t.y += dty;
+                    }
+                    qt_TexCoord0 = t;
+                    highp vec4 pos = qt_Vertex;
+                    gl_Position = qt_Matrix * qt_Vertex;
+                }" 
+
             function generateShader() {
                 var fragmentShaderText =
                     "uniform lowp sampler2D source;\n" +
                     "uniform lowp float qt_Opacity;\n" +
                     "varying highp vec2 qt_TexCoord0;\n" +
                     "uniform lowp float motionBlurFactor;\n" +
-                    "uniform mediump float velocityX;\n" +
-                    "uniform mediump float velocityY;\n";
+                    "uniform mediump float vx;\n" +
+                    "uniform mediump float vy;\n";
 
                 var samples = motionBlurEnabled ? blurSamples : 1
 
@@ -189,7 +222,7 @@ Rectangle {
                     "    vec4 color = vec4(0.0);\n" +
                     "    for (int i = 0; i < " + samples + "; ++i) {\n" +
                     "       vec2 modulatedCoords = qt_TexCoord0 + vec2(motionBlurFactor) *\n" +
-                    "                              vec2(velocityX, velocityY) * (float(i) * (1.0 / " + Math.max(samples - 1, 1) + ".0) - 0.5);\n" +
+                    "                              vec2(vx, vy) * (float(i) * (1.0 / " + Math.max(samples - 1, 1) + ".0) - 0.5);\n" +
                     "       color += texture2D(source, modulatedCoords);\n" +
                     "    }\n" +
                     "    color = color * (1.0 / " + samples + ".0);\n" +
@@ -307,6 +340,16 @@ Rectangle {
                 target: contents
                 checked: true
                 property: "blurredPanes"
+            }
+
+            Button {
+                width: 140
+                height: 24
+                enabled: controller.paused
+                text: "Step"
+                onClicked: {
+                    controller.step()
+                }
             }
 
             Button {

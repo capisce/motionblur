@@ -38,7 +38,7 @@ class Controller : public QObject
     Q_PROPERTY(qreal velocity READ velocity WRITE setVelocity NOTIFY velocityChanged)
     Q_PROPERTY(int skippedFrames READ skippedFrames NOTIFY skippedFramesChanged)
     Q_PROPERTY(QPointF currentPos READ currentPos NOTIFY currentPosChanged)
-    Q_PROPERTY(QPointF currentVelocity READ currentVelocity NOTIFY currentVelocityChanged)
+    Q_PROPERTY(QPointF lastPos READ lastPos NOTIFY lastPosChanged)
 
 public:
     Controller(QWindow *view);
@@ -47,11 +47,12 @@ public:
     GETTER(bool, followMouse)
     GETTER(bool, paused)
     GETTER(int, skippedFrames)
+    GETTER(QPointF, lastPos)
     GETTER(QPointF, currentPos)
-    GETTER(QPointF, currentVelocity)
     GETTER(qreal, velocity)
 
 public slots:
+    void step();
     void update();
     void mouseMoved(const QPoint &pos);
 
@@ -73,23 +74,19 @@ public slots:
     void setFollowMouse(bool value)
     {
         SETTER(followMouse)
-
-        if (!value)
-            adjustAnimationPos();
     }
 
 signals:
     void frameSkipEnabledChanged();
     void velocityChanged();
-    void currentVelocityChanged();
     void currentPosChanged();
+    void lastPosChanged();
     void followMouseChanged();
     void pausedChanged();
     void skippedFramesChanged();
 
 private:
     void initialize();
-    void adjustAnimationPos();
 
     QWindow *m_view;
 
@@ -99,7 +96,7 @@ private:
     qreal m_velocity;
     int m_skippedFrames;
 
-    QPointF m_last;
+    QPointF m_lastPos;
 
     int m_frame;
 
@@ -109,7 +106,6 @@ private:
     bool m_wobble;
     bool m_shadow;
 
-    QPointF m_currentVelocity;
     QPointF m_currentPos;
     QPointF m_targetPos;
     QPoint m_mousePos;
@@ -139,61 +135,46 @@ void Controller::mouseMoved(const QPoint &pos)
 const int tw = 256;
 const int th = 256;
 
-void Controller::adjustAnimationPos()
+void Controller::step()
 {
-    qreal minT = 0;
-    qreal minDistSqr = std::numeric_limits<qreal>::max();
-
     int width = m_view->width();
     int height = m_view->height();
 
-    for (qreal t = 0; t < 20 * M_PI; t += 0.2) {
-        qreal dx = (width - tw) * (0.5 + 0.5 * qSin(t)) - m_currentPos.x();
-        qreal dy = (height - th) * (0.5 + 0.5 * qSin(0.47 * t)) - m_currentPos.y();
+    qreal x, y;
 
-        qreal d = dx * dx + dy * dy;
-        if (d < minDistSqr) {
-            minDistSqr = d;
-            minT = t;
-        }
+    if (m_followMouse) {
+        x = m_mousePos.x();
+        y = m_mousePos.y();
+    } else {
+        m_pos += (m_frameSkipEnabled ? 2 * m_velocity : m_velocity) * 120. / m_view->screen()->refreshRate();
+
+        x = tw/2 + (width - tw) * (0.5 + 0.5 * qSin(m_pos));
+        y = th/2 + (height - th) * (0.5 + 0.5 * qSin(0.47 * m_pos));
     }
 
-    m_pos = minT;
+    m_targetPos = QPointF(x, y);
+
+    if (m_currentPos.isNull()) {
+        m_currentPos = m_targetPos;
+    }
+
+    m_lastPos = m_currentPos;
+
+    emit lastPosChanged();
+
+    m_currentPos += 0.8 * (m_targetPos - m_currentPos);
+
+    if (m_frameSkipEnabled) {
+        m_currentPos += 0.8 * (m_targetPos - m_currentPos);
+    }
+
+    emit currentPosChanged();
 }
 
 void Controller::update()
 {
-    int width = m_view->width();
-    int height = m_view->height();
-
-    if (!m_paused && (!m_frameSkipEnabled || (m_frame & 1))) {
-        qreal x, y;
-
-        if (m_followMouse) {
-            x = m_mousePos.x() - tw / 2;
-            y = m_mousePos.y() - th / 2;
-        } else {
-            m_pos += (m_frameSkipEnabled ? 2 * m_velocity : m_velocity) * 120. / m_view->screen()->refreshRate();
-
-            x = (width - tw) * (0.5 + 0.5 * qSin(m_pos));
-            y = (height - th) * (0.5 + 0.5 * qSin(0.47 * m_pos));
-        }
-
-        m_targetPos = QPointF(x, y);
-
-        m_currentPos += 0.5 * (m_targetPos - m_currentPos);
-
-        if (m_frameSkipEnabled) {
-            m_currentPos += 0.5 * (m_targetPos - m_currentPos);
-        }
-
-        m_currentVelocity = QPointF((m_last.x() - m_currentPos.x()) / tw, (m_last.y() - m_currentPos.y()) / th);
-
-        m_last = m_currentPos;
-
-        emit currentPosChanged();
-        emit currentVelocityChanged();
-    }
+    if (!m_paused && (!m_frameSkipEnabled || (m_frame & 1)))
+        step();
 
     if (m_time.isNull()) {
         m_time.start();
