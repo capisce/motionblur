@@ -240,12 +240,14 @@ Rectangle {
             Toggle {
                 text: "Wobble"
                 target: sourceeffect
+                checked: true
                 property: "wobbleFactor"
             }
 
             Toggle {
                 text: "Hologram"
                 target: sourceeffect
+                checked: true
                 property: "hologramFactor"
             }
 
@@ -270,6 +272,7 @@ Rectangle {
             Toggle {
                 text: "Blurred panes"
                 target: contents
+                checked: true
                 property: "blurredPanes"
             }
 
@@ -322,6 +325,7 @@ Rectangle {
             }
             
             PaneSlider {
+                id: blurSlider
                 value: 50
                 minimum: 1
                 maximum: 80
@@ -354,25 +358,47 @@ Rectangle {
         id: initTimer
         repeat: false
         running: true
-        interval: 1000
+        interval: 1500
         onTriggered: {
             initialized = true
+            calibrationPane.opacity = 0
             console.log("Blur samples initialized to " + effect.blurSamples)
         }
     }
 
+    Pane {
+        id: calibrationPane
+        anchors.centerIn: parent
+        opacity: 0.6
+
+        width: calibrationText.width * 1.2
+        height: calibrationText.height * 2.0
+
+        property int quality: effect.blurSamples
+
+        Behavior on quality { NumberAnimation { duration: 400 } }
+
+        Text {
+            id: calibrationText
+            anchors.centerIn: parent
+            text: "Calibrating blur quality for best frame rate: " + parent.quality
+        }
+    }
+
     Connections {
+        id: connections
         target: controller
         property bool ignore: false
         onSkippedFramesChanged: {
             if (initialized || effect.blurSamples <= 4)
                 return;
-            ignore = !ignore;
+            connections.ignore = !connections.ignore;
             // changing blurSamples _will_ result in skipped frames
             // so ignore every other change
-            if (ignore)
+            if (connections.ignore)
                 return;
             effect.blurSamples = Math.floor(effect.blurSamples * 0.8);
+            blurSlider.value = effect.blurSamples
             initTimer.restart();
         }
     }
