@@ -5,6 +5,7 @@ import QtUiStyle 1.0
 Rectangle {
     id: root
     property real time
+    property bool panesEnabled: false
 
     Item {
         id: contents
@@ -162,6 +163,8 @@ Rectangle {
 
                 var samples = motionBlurEnabled ? blurSamples : 1
 
+                console.log("Generating blur effect with " + samples + " samples")
+
                 fragmentShaderText +=
                     "void main()\n" +
                     "{\n" +
@@ -214,6 +217,7 @@ Rectangle {
 
     Pane {
         id: controlspane
+        enabled: root.panesEnabled
         x: hovered ? -10 : 20 - width
 
         anchors.verticalCenter: parent.verticalCenter
@@ -238,6 +242,7 @@ Rectangle {
             }
 
             Toggle {
+                id: wobbleToggle
                 text: "Wobble"
                 target: sourceeffect
                 checked: true
@@ -245,6 +250,7 @@ Rectangle {
             }
 
             Toggle {
+                id: hologramToggle
                 text: "Hologram"
                 target: sourceeffect
                 checked: true
@@ -270,6 +276,7 @@ Rectangle {
             }
 
             Toggle {
+                id: blurredPanesToggle
                 text: "Blurred panes"
                 target: contents
                 checked: true
@@ -292,6 +299,7 @@ Rectangle {
 
     Pane {
         id: velocitypane
+        enabled: root.panesEnabled
         y: hovered ? -10 : 20 - height
 
         anchors.horizontalCenter: parent.horizontalCenter
@@ -356,13 +364,22 @@ Rectangle {
 
     Timer {
         id: initTimer
-        repeat: false
         running: true
-        interval: 1500
+        interval: 2000
         onTriggered: {
             initialized = true
+            blurSlider.value = calibrationPane.targetSamples
+            hideCalibrationPaneTimer.start()
+            root.panesEnabled = true
+        }
+    }
+
+    Timer {
+        id: hideCalibrationPaneTimer
+        interval: 2000
+        onTriggered: {
             calibrationPane.opacity = 0
-            console.log("Blur samples initialized to " + effect.blurSamples)
+            console.log("Blur samples initialized to " + effect.blurSamples);
         }
     }
 
@@ -371,17 +388,36 @@ Rectangle {
         anchors.centerIn: parent
         opacity: 0.6
 
-        width: calibrationText.width * 1.2
-        height: calibrationText.height * 2.0
+        width: calibrationColumn.width * 1.2
+        height: calibrationColumn.height * 1.2
 
-        property int quality: effect.blurSamples
+        property int targetSamples: Math.max(1, Math.floor(effect.blurSamples * 0.8))
 
-        Behavior on quality { NumberAnimation { duration: 400 } }
+        Behavior on targetSamples { NumberAnimation { duration: 400 } }
 
-        Text {
-            id: calibrationText
+        Column {
             anchors.centerIn: parent
-            text: "Calibrating blur quality for best frame rate: " + parent.quality
+            id: calibrationColumn
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: "Calibrating effects for best frame rate"
+            }
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: "Blur samples: " + calibrationPane.targetSamples
+            }
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: "Blurred panes enabled: " + blurredPanesToggle.checked
+            }
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: "Hologram enabled: " + hologramToggle.checked
+            }
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: "Wobble enabled: " + wobbleToggle.checked
+            }
         }
     }
 
@@ -390,15 +426,22 @@ Rectangle {
         target: controller
         property bool ignore: false
         onSkippedFramesChanged: {
-            if (initialized || effect.blurSamples <= 4)
+            if (initialized)
                 return;
             connections.ignore = !connections.ignore;
             // changing blurSamples _will_ result in skipped frames
             // so ignore every other change
             if (connections.ignore)
                 return;
-            effect.blurSamples = Math.floor(effect.blurSamples * 0.8);
-            blurSlider.value = effect.blurSamples
+            if (calibrationPane.targetSamples <= 32 && blurredPanesToggle.checked) {
+                blurredPanesToggle.checked = false
+            } else if (calibrationPane.targetSamples <= 16 && hologramToggle.checked) {
+                hologramToggle.checked = false
+            } else if (calibrationPane.targetSamples <= 16 && wobbleToggle.checked) {
+                wobbleToggle.checked = false
+            } else {
+                blurSlider.value = Math.max(1, Math.floor(effect.blurSamples * 0.8));
+            }
             initTimer.restart();
         }
     }

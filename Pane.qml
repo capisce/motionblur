@@ -1,14 +1,16 @@
 import QtQuick 2.0
 
 Rectangle {
+    id: pane
+
     property bool hovered: false
+    property bool enabled: true
 
     layer.enabled: true
 
-    id: pane
     radius: 6
     color: "white"
-    opacity: hovered ? 0.6 : 0.2
+    opacity: enabled ? (hovered ? 0.6 : 0.2) : 0
 
     Behavior on x { NumberAnimation {} }
     Behavior on y { NumberAnimation {} }
@@ -16,7 +18,7 @@ Rectangle {
 
     MouseArea {
         onEntered: pane.hovered = true
-        hoverEnabled: true
+        hoverEnabled: pane.enabled
         anchors.fill: parent
     }
 }
