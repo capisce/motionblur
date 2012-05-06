@@ -10,7 +10,7 @@ Rectangle {
 
     radius: 6
     color: "white"
-    opacity: enabled ? (hovered ? 0.6 : 0.2) : 0
+    opacity: hovered ? 0.6 : 0.2
 
     Behavior on x { NumberAnimation {} }
     Behavior on y { NumberAnimation {} }

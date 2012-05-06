@@ -6,6 +6,7 @@ Rectangle {
     id: root
     property real time
     property bool panesEnabled: false
+    property bool calibrating: true
 
     Item {
         id: contents
@@ -163,8 +164,6 @@ Rectangle {
 
                 var samples = motionBlurEnabled ? blurSamples : 1
 
-                console.log("Generating blur effect with " + samples + " samples")
-
                 fragmentShaderText +=
                     "void main()\n" +
                     "{\n" +
@@ -215,6 +214,13 @@ Rectangle {
         blurSamples: effect.blurSamples
     }
 
+    Blur {
+        anchors.fill: calibrationPane
+        source: contents
+        enabled: contents.blurredPanes
+        blurSamples: root.calibrating ? effect.blurSamples : 1
+    }
+
     Pane {
         id: controlspane
         enabled: root.panesEnabled
@@ -222,7 +228,7 @@ Rectangle {
 
         anchors.verticalCenter: parent.verticalCenter
 
-        width: 200
+        width: 220
         height: column.height + 20
 
         Column {
@@ -235,6 +241,7 @@ Rectangle {
             spacing: 10
 
             Toggle {
+                id: motionBlurToggle
                 text: "Motion blur"
                 target: effect
                 checked: true
@@ -281,6 +288,23 @@ Rectangle {
                 target: contents
                 checked: true
                 property: "blurredPanes"
+            }
+
+            Button {
+                width: 140
+                height: 24
+                text: "Recalibrate"
+                onClicked: {
+                    root.calibrating = true
+                    root.panesEnabled = false
+                    controlspane.hovered = false
+                    blurSlider.value = 50
+                    motionBlurToggle.checked = true
+                    wobbleToggle.checked = true
+                    hologramToggle.checked = true
+                    blurredPanesToggle.checked = true
+                    initTimer.start()
+                }
             }
 
             Text {
@@ -368,9 +392,7 @@ Rectangle {
         interval: 2000
         onTriggered: {
             initialized = true
-            blurSlider.value = calibrationPane.targetSamples
             hideCalibrationPaneTimer.start()
-            root.panesEnabled = true
         }
     }
 
@@ -378,7 +400,9 @@ Rectangle {
         id: hideCalibrationPaneTimer
         interval: 2000
         onTriggered: {
-            calibrationPane.opacity = 0
+            root.calibrating = false
+            root.panesEnabled = true
+            blurSlider.value = calibrationPane.targetSamples
             console.log("Blur samples initialized to " + effect.blurSamples);
         }
     }
@@ -386,12 +410,20 @@ Rectangle {
     Pane {
         id: calibrationPane
         anchors.centerIn: parent
-        opacity: 0.6
+        opacity: root.calibrating ? 0.6 : 0
 
         width: calibrationColumn.width * 1.2
         height: calibrationColumn.height * 1.2
 
-        property int targetSamples: Math.max(1, Math.floor(effect.blurSamples * 0.8))
+        property int targetSamples
+
+        Connections {
+            target: effect
+            onBlurSamplesChanged: {
+                if (root.calibrating)
+                    calibrationPane.targetSamples = Math.max(1, Math.floor(effect.blurSamples * 0.8))
+            }
+        }
 
         Behavior on targetSamples { NumberAnimation { duration: 400 } }
 
