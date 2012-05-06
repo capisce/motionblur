@@ -322,7 +322,7 @@ Rectangle {
             }
             
             PaneSlider {
-                value: 40
+                value: 20
                 minimum: 1
                 maximum: 80
                 tickInterval: 1 
