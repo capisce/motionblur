@@ -39,41 +39,37 @@ Rectangle {
             layer.enabled: true
             layer.smooth: true
             layer.mipmap: true
-            layer.wrapMode: ShaderEffectSource.ClampToEdge
-            layer.sourceRect: Qt.rect(-256, -256, 1024, 1024)
-            layer.textureSize: Qt.size(1024, 1024)
         }
 
+
         ShaderEffect {
-            id: effect
-
-            property variant source: shadersource
-            property real motionBlurFactor
-            property real wobbleFactor
-            property real hologramFactor
-            property real time: root.time
-            property real velocityX: controller.currentVelocity.x * 0.5
-            property real velocityY: controller.currentVelocity.y * 0.5
-            property int blurSamples
-
-            property bool motionBlurEnabled: motionBlurFactor > 0.001
-            property bool wobbleEnabled: wobbleFactor > 0.001
-            property bool hologramEnabled: hologramFactor > 0.001
-
-            x: controller.currentPos.x - 128
-            y: controller.currentPos.y - 128
+            id: sourceeffect
 
             width: 512
             height: 512
 
+            property variant source: shadersource
+            property real time: root.time
+            property real wobbleFactor
+            property real hologramFactor
+
+            visible: false
+
+            layer.enabled: true
+            layer.smooth: true
+            layer.mipmap: true
+            layer.wrapMode: ShaderEffectSource.ClampToEdge
+            layer.sourceRect: Qt.rect(-256, -256, 1024, 1024)
+            layer.textureSize: Qt.size(1024, 1024)
+
             Component.onCompleted: generateShader()
-            onBlurSamplesChanged: generateShader()
-            onMotionBlurEnabledChanged: generateShader()
             onWobbleEnabledChanged: generateShader()
             onHologramEnabledChanged: generateShader()
 
+            property bool wobbleEnabled: wobbleFactor > 0.001
+            property bool hologramEnabled: hologramFactor > 0.001
+
             Behavior on wobbleFactor { NumberAnimation {} }
-            Behavior on motionBlurFactor { NumberAnimation {} }
             Behavior on hologramFactor { NumberAnimation {} }
 
             function generateShader() {
@@ -82,11 +78,8 @@ Rectangle {
                     "uniform lowp float qt_Opacity;\n" +
                     "uniform highp float time;\n" +
                     "varying highp vec2 qt_TexCoord0;\n" +
-                    "uniform lowp float motionBlurFactor;\n" +
                     "uniform lowp float hologramFactor;\n" +
-                    "uniform lowp float wobbleFactor;\n" +
-                    "uniform mediump float velocityX;\n" +
-                    "uniform mediump float velocityY;\n";
+                    "uniform lowp float wobbleFactor;\n";
 
                 if (wobbleEnabled) {
                     fragmentShaderText +=
@@ -125,6 +118,48 @@ Rectangle {
                         "}\n";
                 }
 
+                fragmentShaderText +=
+                    "void main()\n" +
+                    "{\n" +
+                    "    gl_FragColor = sample(qt_TexCoord0);\n" +
+                    "}\n";
+
+                fragmentShader = fragmentShaderText
+            }
+        }
+
+        ShaderEffect {
+            id: effect
+
+            property variant source: sourceeffect
+            property real motionBlurFactor
+            property real velocityX: controller.currentVelocity.x * 0.5
+            property real velocityY: controller.currentVelocity.y * 0.5
+            property int blurSamples
+
+            property bool motionBlurEnabled: motionBlurFactor > 0.001
+
+            x: controller.currentPos.x - 128
+            y: controller.currentPos.y - 128
+
+            width: 512
+            height: 512
+
+            Component.onCompleted: generateShader()
+            onBlurSamplesChanged: generateShader()
+            onMotionBlurEnabledChanged: generateShader()
+
+            Behavior on motionBlurFactor { NumberAnimation {} }
+
+            function generateShader() {
+                var fragmentShaderText =
+                    "uniform lowp sampler2D source;\n" +
+                    "uniform lowp float qt_Opacity;\n" +
+                    "varying highp vec2 qt_TexCoord0;\n" +
+                    "uniform lowp float motionBlurFactor;\n" +
+                    "uniform mediump float velocityX;\n" +
+                    "uniform mediump float velocityY;\n";
+
                 var samples = motionBlurEnabled ? blurSamples : 1
 
                 fragmentShaderText +=
@@ -134,7 +169,7 @@ Rectangle {
                     "    for (int i = 0; i < " + samples + "; ++i) {\n" +
                     "       vec2 modulatedCoords = qt_TexCoord0 + vec2(motionBlurFactor) *\n" +
                     "                              vec2(velocityX, velocityY) * (float(i) * (1.0 / " + Math.max(samples - 1, 1) + ".0) - 0.5);\n" +
-                    "       color += sample(modulatedCoords);\n" +
+                    "       color += texture2D(source, modulatedCoords);\n" +
                     "    }\n" +
                     "    color = color * (1.0 / " + samples + ".0);\n" +
                     "    gl_FragColor = qt_Opacity * color;\n" +
@@ -204,13 +239,13 @@ Rectangle {
 
             Toggle {
                 text: "Wobble"
-                target: effect
+                target: sourceeffect
                 property: "wobbleFactor"
             }
 
             Toggle {
                 text: "Hologram"
-                target: effect
+                target: sourceeffect
                 property: "hologramFactor"
             }
 
@@ -287,7 +322,7 @@ Rectangle {
             }
             
             PaneSlider {
-                value: 20
+                value: 40
                 minimum: 1
                 maximum: 80
                 tickInterval: 1 
