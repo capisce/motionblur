@@ -465,7 +465,7 @@ Rectangle {
             
             PaneSlider {
                 value: 0.01
-                maximum: 0.5
+                maximum: 0.36
                 target: controller
                 property: "velocity"
             }
@@ -478,9 +478,9 @@ Rectangle {
             
             PaneSlider {
                 id: blurSlider
-                value: 100
+                value: 50
                 minimum: 1
-                maximum: 400
+                maximum: 200
                 tickInterval: 10
                 stepSize: 1
                 target: effect
