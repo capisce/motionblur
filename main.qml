@@ -150,27 +150,33 @@ Rectangle {
         ShaderEffect {
             id: effect
 
-            property real cx: controller.currentPos.x
-            property real cy: controller.currentPos.y
-            property real lx: controller.lastPos.x
-            property real ly: controller.lastPos.y
+            property real x0: controller.posA.x
+            property real y0: controller.posA.y
+            property real x1: controller.posB.x
+            property real y1: controller.posB.y
+            property real x2: controller.posC.x
+            property real y2: controller.posC.y
+            property real x3: controller.posD.x
+            property real y3: controller.posD.y
+            property real x4: controller.posE.x
+            property real y4: controller.posE.y
+            property real x5: controller.posF.x
+            property real y5: controller.posF.y
 
             property variant source: sourceeffect
             property real motionBlurFactor
-            property real dx: cx - lx
-            property real dy: cy - ly
-            property real avx: Math.abs(dx)
-            property real avy: Math.abs(dy)
-            property real vx: dx / 256
-            property real vy: dy / 256
+
+            property real avx: controller.bounds.width
+            property real avy: controller.bounds.height
+
             property real dtx: 0.5 * avx / 256
             property real dty: 0.5 * avy / 256
             property int blurSamples
 
             property bool motionBlurEnabled: motionBlurFactor > 0.001
 
-            x: (cx + lx - avx) * 0.5 - 128
-            y: (cy + ly - avy) * 0.5 - 128
+            x: controller.bounds.x + (controller.bounds.width - avx) * 0.5 - 128
+            y: controller.bounds.y + (controller.bounds.height - avy) * 0.5 - 128
 
             width: 256 + avx
             height: 256 + avy
@@ -210,24 +216,49 @@ Rectangle {
                     "uniform lowp sampler2D source;\n" +
                     "uniform lowp float qt_Opacity;\n" +
                     "varying highp vec2 qt_TexCoord0;\n" +
-                    "uniform lowp float motionBlurFactor;\n" +
-                    "uniform mediump float vx;\n" +
-                    "uniform mediump float vy;\n";
+                    "uniform lowp float motionBlurFactor;\n";
 
-                var samples = motionBlurEnabled ? blurSamples : 1
+                if (motionBlurEnabled && blurSamples >= 6) {
+                    var samplesPerInterval = Math.floor(((motionBlurEnabled ? blurSamples : 1) - 1) / 5)
 
-                fragmentShaderText +=
-                    "void main()\n" +
-                    "{\n" +
-                    "    vec4 color = vec4(0.0);\n" +
-                    "    for (int i = 0; i < " + samples + "; ++i) {\n" +
-                    "       vec2 modulatedCoords = qt_TexCoord0 + vec2(motionBlurFactor) *\n" +
-                    "                              vec2(vx, vy) * (float(i) * (1.0 / " + Math.max(samples - 1, 1) + ".0) - 0.5);\n" +
-                    "       color += texture2D(source, modulatedCoords);\n" +
-                    "    }\n" +
-                    "    color = color * (1.0 / " + samples + ".0);\n" +
-                    "    gl_FragColor = qt_Opacity * color;\n" +
-                    "}\n";
+                    fragmentShaderText +=
+                        "uniform mediump float x0;\n" +
+                        "uniform mediump float y0;\n" +
+                        "uniform mediump float x1;\n" +
+                        "uniform mediump float y1;\n" +
+                        "uniform mediump float x2;\n" +
+                        "uniform mediump float y2;\n" +
+                        "uniform mediump float x3;\n" +
+                        "uniform mediump float y3;\n" +
+                        "uniform mediump float x4;\n" +
+                        "uniform mediump float y4;\n" +
+                        "uniform mediump float x5;\n" +
+                        "uniform mediump float y5;\n" +
+                        "void main()\n" +
+                        "{\n" +
+                        "    vec4 color = vec4(0.0);\n";
+
+                    for (var i = 0; i < 5; ++i) {
+                        fragmentShaderText +=
+                            "    for (int i = 0; i < " + samplesPerInterval + "; ++i) {\n" +
+                            "       vec2 modulatedCoords = qt_TexCoord0 - motionBlurFactor *\n" +
+                            "                              mix(vec2(x" + i + ", y" + i + "), vec2(x" + (i+1) + ", y" + (i+1) + "), float(i) / " + samplesPerInterval + ".0);\n" +
+                            "       color += texture2D(source, modulatedCoords);\n" +
+                            "    }\n";
+                    }
+
+                    fragmentShaderText +=
+                        "    color += texture2D(source, qt_TexCoord0 - motionBlurFactor * vec2(x5, y5));\n" +
+                        "    color = color * (1.0 / " + (samplesPerInterval * 5 + 1) + ".0);\n" +
+                        "    gl_FragColor = qt_Opacity * color;\n" +
+                        "}\n";
+                } else {
+                    fragmentShaderText +=
+                        "void main()\n" +
+                        "{\n" +
+                        "    gl_FragColor = qt_Opacity * texture2D(source, qt_TexCoord0);\n" +
+                        "}\n";
+                }
 
                 fragmentShader = fragmentShaderText
             }
@@ -408,7 +439,7 @@ Rectangle {
             
             PaneSlider {
                 value: 0.01
-                maximum: 0.18
+                maximum: 0.9
                 target: controller
                 property: "velocity"
             }
@@ -423,7 +454,7 @@ Rectangle {
                 id: blurSlider
                 value: 50
                 minimum: 1
-                maximum: 80
+                maximum: 200
                 tickInterval: 1 
                 stepSize: 1
                 target: effect
