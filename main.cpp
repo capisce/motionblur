@@ -168,6 +168,7 @@ void Controller::step()
 
             if (!m_mouseTrail.isEmpty())
                 m_mousePos = m_mouseTrail.pointAtPercent(t);
+
             x = m_mousePos.x();
             y = m_mousePos.y();
         } else {
@@ -194,6 +195,8 @@ void Controller::step()
 
     emit positionsChanged();
     emit boundsChanged();
+
+    m_mousePos = m_mouseTrail.currentPosition();
 
     m_mouseTrail = QPainterPath();
     m_mouseTrail.moveTo(m_mousePos);
@@ -248,7 +251,7 @@ int main(int argc, char **argv)
     view.rootContext()->setContextProperty("screen", view.screen());
     view.setSource(QUrl("main.qml"));
     view.setResizeMode(QQuickView::SizeRootObjectToView);
-    view.setGeometry(0, 0, 1024, 768);
+    view.setGeometry(0, 0, 800, 600);
     view.showFullScreen();
 
     QObject::connect(&view, SIGNAL(afterRendering()), &controller, SLOT(update()));

@@ -150,6 +150,8 @@ Rectangle {
         ShaderEffect {
             id: effect
 
+            property bool gammaCorrect: true
+
             property real x0: controller.posA.x
             property real y0: controller.posA.y
             property real x1: controller.posB.x
@@ -242,14 +244,38 @@ Rectangle {
                         fragmentShaderText +=
                             "    for (int i = 0; i < " + samplesPerInterval + "; ++i) {\n" +
                             "       vec2 modulatedCoords = qt_TexCoord0 - motionBlurFactor *\n" +
-                            "                              mix(vec2(x" + i + ", y" + i + "), vec2(x" + (i+1) + ", y" + (i+1) + "), float(i) / " + samplesPerInterval + ".0);\n" +
-                            "       color += texture2D(source, modulatedCoords);\n" +
+                            "                              mix(vec2(x" + i + ", y" + i + "), vec2(x" + (i+1) + ", y" + (i+1) + "), float(i) / " + samplesPerInterval + ".0);\n"
+                        if (gammaCorrect) {
+                            fragmentShaderText +=
+                                "       vec4 sample = texture2D(source, modulatedCoords);\n" +
+                                "       color += vec4(sample.rgb * sample.rgb, sample.a);\n";
+                        } else {
+                            fragmentShaderText +=
+                                "       color += texture2D(source, modulatedCoords);\n";
+                        }
+
+                        fragmentShaderText +=
                             "    }\n";
                     }
 
+                    if (gammaCorrect) {
+                        fragmentShaderText +=
+                            "    vec4 sample = texture2D(source, qt_TexCoord0 - motionBlurFactor * vec2(x5, y5));\n"
+                            "    color += vec4(sample.rgb * sample.rgb, sample.a);\n";
+                    } else {
+                        fragmentShaderText +=
+                            "    color += texture2D(source, qt_TexCoord0 - motionBlurFactor * vec2(x5, y5));\n";
+                    }
+
                     fragmentShaderText +=
-                        "    color += texture2D(source, qt_TexCoord0 - motionBlurFactor * vec2(x5, y5));\n" +
-                        "    color = color * (1.0 / " + (samplesPerInterval * 5 + 1) + ".0);\n" +
+                        "    color = color * (1.0 / " + (samplesPerInterval * 5 + 1) + ".0);\n";
+
+                    if (gammaCorrect) {
+                        fragmentShaderText +=
+                            "    color = vec4(sqrt(color.rgb), color.a);\n";
+                    }
+
+                    fragmentShaderText +=
                         "    gl_FragColor = qt_Opacity * color;\n" +
                         "}\n";
                 } else {
@@ -439,7 +465,7 @@ Rectangle {
             
             PaneSlider {
                 value: 0.01
-                maximum: 0.9
+                maximum: 0.5
                 target: controller
                 property: "velocity"
             }
@@ -452,10 +478,10 @@ Rectangle {
             
             PaneSlider {
                 id: blurSlider
-                value: 50
+                value: 100
                 minimum: 1
-                maximum: 200
-                tickInterval: 1 
+                maximum: 400
+                tickInterval: 10
                 stepSize: 1
                 target: effect
                 property: "blurSamples"
