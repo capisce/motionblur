@@ -508,7 +508,7 @@ Rectangle {
 
     Timer {
         id: initTimer
-        running: true
+        running: false
         interval: 2000
         onTriggered: {
             initialized = true
@@ -599,6 +599,8 @@ Rectangle {
     }
 
     onTChanged: {
+        if (frame > 0 && !initialized && !initTimer.running)
+            initTimer.start()
         update() // force continuous animation
         if (!controller.paused)
             time += 1.0 / screen.refreshRate
