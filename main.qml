@@ -76,9 +76,10 @@ Rectangle {
 
             visible: false
 
-            layer.enabled: true
+            property bool enabled: wobbleEnabled || hologramEnabled
+
+            layer.enabled: enabled
             layer.smooth: true
-            layer.mipmap: true
             layer.wrapMode: ShaderEffectSource.ClampToEdge
 
             Component.onCompleted: generateShader()
@@ -165,7 +166,7 @@ Rectangle {
             property real x5: controller.posF.x
             property real y5: controller.posF.y
 
-            property variant source: sourceeffect
+            property variant source: sourceeffect.enabled ? sourceeffect : shadersource
             property real motionBlurFactor
 
             property real avx: controller.bounds.width

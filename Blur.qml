@@ -48,7 +48,7 @@ ShaderEffectSource {
 
         fragmentShader: root.fragmentShader
 
-        layer.enabled: true
+        layer.enabled: parent.enabled
         layer.smooth: true
         layer.effect: ShaderEffect {
             property real dx: 0
