@@ -191,29 +191,28 @@ Rectangle {
 
             Behavior on motionBlurFactor { NumberAnimation {} }
 
-            vertexShader: "
-                uniform highp mat4 qt_Matrix;
-                attribute highp vec4 qt_Vertex;
-                attribute highp vec2 qt_MultiTexCoord0;
-                varying highp vec2 qt_TexCoord0;
-                uniform highp float dtx;
-                uniform highp float dty;
-                void main() {
-                    highp vec2 t = qt_MultiTexCoord0;
-                    if (t.x < 0.5) {
-                        t.x -= dtx;
-                    } else {
-                        t.x += dtx;
-                    }
-                    if (t.y < 0.5) {
-                        t.y -= dty;
-                    } else {
-                        t.y += dty;
-                    }
-                    qt_TexCoord0 = t;
-                    highp vec4 pos = qt_Vertex;
-                    gl_Position = qt_Matrix * qt_Vertex;
-                }" 
+            vertexShader: "uniform highp mat4 qt_Matrix;\n" +
+                "attribute highp vec4 qt_Vertex;\n" +
+                "attribute highp vec2 qt_MultiTexCoord0;\n" +
+                "varying highp vec2 qt_TexCoord0;\n" +
+                "uniform highp float dtx;\n" +
+                "uniform highp float dty;\n" +
+                "void main() {\n" +
+                "    highp vec2 t = qt_MultiTexCoord0;\n" +
+                "    if (t.x < 0.5) {\n" +
+                "        t.x -= dtx;\n" +
+                "    } else {\n" +
+                "        t.x += dtx;\n" +
+                "    }\n" +
+                "    if (t.y < 0.5) {\n" +
+                "        t.y -= dty;\n" +
+                "    } else {\n" +
+                "        t.y += dty;\n" +
+                "    }\n" +
+                "    qt_TexCoord0 = t;\n" +
+                "    highp vec4 pos = qt_Vertex;\n" +
+                "    gl_Position = qt_Matrix * qt_Vertex;\n" +
+                "}";
 
             function generateShader() {
                 var fragmentShaderText =
@@ -242,43 +241,42 @@ Rectangle {
                         "{\n" +
                         "    vec4 color = vec4(0.0);\n";
 
-                    for (var i = 0; i < 5; ++i) {
-                        if (samplesPerInterval < 4) {
+                    if (samplesPerInterval < 3) {
+                        for (var i = 0; i < 5; ++i) {
                             for (var j = 0; j < samplesPerInterval; ++j) {
+                                var index = i * 5 + j;
                                 fragmentShaderText +=
-                                    "   {\n" +
-                                    "       vec2 modulatedCoords = qt_TexCoord0 - motionBlurFactor *\n" +
-                                    "                              mix(vec2(x" + i + ", y" + i + "), vec2(x" + (i+1) + ", y" + (i+1) + "), " + j + ".0 / " + samplesPerInterval + ".0);\n"
+                                    "   vec2 modulatedCoords" + index + " = qt_TexCoord0 - motionBlurFactor * mix(vec2(x" + i + ", y" + i + "), vec2(x" + (i+1) + ", y" + (i+1) + "), " + index + ".0 / " + samplesPerInterval + ".0);\n"
 
                                 if (gammaCorrect) {
                                     fragmentShaderText +=
-                                        "       vec4 sample = texture2D(source, modulatedCoords);\n" +
-                                        "       color += vec4(sample.rgb * sample.rgb, sample.a);\n";
+                                        "   vec4 sample" + index + " = texture2D(source, modulatedCoords" + index + ");\n" +
+                                        "   color += vec4(sample" + index + ".rgb * sample" + index + ".rgb, sample" + index + ".a);\n";
                                 } else {
                                     fragmentShaderText +=
-                                        "       color += texture2D(source, modulatedCoords);\n";
+                                        "   color += texture2D(source, modulatedCoords" + index + ");\n";
                                 }
-
-                                fragmentShaderText +=
-                                    "    }\n";
                             }
-                        } else {
+                        }
+                    } else {
+                        fragmentShaderText +=
+                            "    for (int i = 0; i < " + samplesPerInterval + "; ++i) {\n";
+
+                        for (var i = 0; i < 5; ++i) {
                             fragmentShaderText +=
-                                "    for (int i = 0; i < " + samplesPerInterval + "; ++i) {\n" +
-                                "       vec2 modulatedCoords = qt_TexCoord0 - motionBlurFactor *\n" +
-                                "                              mix(vec2(x" + i + ", y" + i + "), vec2(x" + (i+1) + ", y" + (i+1) + "), float(i) / " + samplesPerInterval + ".0);\n"
+                                "       vec2 modulatedCoords" + i + " = qt_TexCoord0 - motionBlurFactor * mix(vec2(x" + i + ", y" + i + "), vec2(x" + (i+1) + ", y" + (i+1) + "), float(i) / " + samplesPerInterval + ".0);\n"
                             if (gammaCorrect) {
                                 fragmentShaderText +=
-                                    "       vec4 sample = texture2D(source, modulatedCoords);\n" +
-                                    "       color += vec4(sample.rgb * sample.rgb, sample.a);\n";
+                                    "       vec4 sample" + i + " = texture2D(source, modulatedCoords" + i + ");\n" +
+                                    "       color += vec4(sample" + i + ".rgb * sample" + i + ".rgb, sample" + i + ".a);\n";
                             } else {
                                 fragmentShaderText +=
-                                    "       color += texture2D(source, modulatedCoords);\n";
+                                    "       color += texture2D(source, modulatedCoords" + i + ");\n";
                             }
-
-                            fragmentShaderText +=
-                                "    }\n";
                         }
+
+                        fragmentShaderText +=
+                            "    }\n";
                     }
 
                     if (gammaCorrect) {
@@ -351,6 +349,13 @@ Rectangle {
         source: contents
         enabled: contents.blurredPanes
         blurSamples: root.calibrating ? effect.blurSamples : 1
+    }
+
+    Blur {
+        anchors.fill: shaderPane
+        source: contents
+        enabled: contents.blurredPanes
+        blurSamples: shaderPane.enabled ? effect.blurSamples : 1
     }
 
     Pane {
@@ -429,6 +434,14 @@ Rectangle {
                 property: "gammaCorrect"
             }
 
+            Toggle {
+                id: showShadersToggle
+                text: "Show shaders"
+                target: shaderPane
+                checked: false
+                property: "enabled"
+            }
+
             Button {
                 width: 140
                 height: 24
@@ -453,6 +466,7 @@ Rectangle {
                     wobbleToggle.checked = true
                     hologramToggle.checked = true
                     blurredPanesToggle.checked = true
+                    showShadersToggle.checked = false
                     initTimer.start()
                 }
             }
@@ -554,6 +568,33 @@ Rectangle {
             root.panesEnabled = true
             blurSlider.value = calibrationPane.targetSamples
             console.log("Blur samples initialized to " + effect.blurSamples);
+        }
+    }
+
+    Pane {
+        id: shaderPane
+        anchors.centerIn: parent
+
+        opacity: enabled ? 0.5 : 0.0
+
+        width: textContainer.scale * textContainer.width + 10
+        height: root.height - 2 * (velocitypane.height + 10)
+
+        Row {
+            id: textContainer
+
+            scale: (shaderPane.height - 10) / height
+
+            anchors.centerIn: parent
+            spacing: 20
+            Text {
+                text: effect.vertexShader
+                font.pixelSize: 12
+            }
+            Text {
+                text: effect.fragmentShader
+                font.pixelSize: 12
+            }
         }
     }
 
