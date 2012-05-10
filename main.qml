@@ -577,13 +577,13 @@ Rectangle {
 
         opacity: enabled ? 0.5 : 0.0
 
-        width: textContainer.scale * textContainer.width + 10
+        width: root.width - 2 * (controlspane.width + 10)
         height: root.height - 2 * (velocitypane.height + 10)
 
         Row {
             id: textContainer
 
-            scale: (shaderPane.height - 10) / height
+            scale: Math.min((shaderPane.height - 10) / height, (shaderPane.width - 10) / width)
 
             anchors.centerIn: parent
             spacing: 20
