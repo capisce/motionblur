@@ -246,7 +246,7 @@ Rectangle {
                             for (var j = 0; j < samplesPerInterval; ++j) {
                                 var index = i * 5 + j;
                                 fragmentShaderText +=
-                                    "   vec2 modulatedCoords" + index + " = qt_TexCoord0 - motionBlurFactor * mix(vec2(x" + i + ", y" + i + "), vec2(x" + (i+1) + ", y" + (i+1) + "), " + index + ".0 / " + samplesPerInterval + ".0);\n"
+                                    "   vec2 modulatedCoords" + index + " = qt_TexCoord0 - motionBlurFactor * mix(vec2(x" + i + ", y" + i + "), vec2(x" + (i+1) + ", y" + (i+1) + "), " + j + ".0 / " + samplesPerInterval + ".0);\n"
 
                                 if (gammaCorrect) {
                                     fragmentShaderText +=
