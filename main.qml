@@ -243,21 +243,42 @@ Rectangle {
                         "    vec4 color = vec4(0.0);\n";
 
                     for (var i = 0; i < 5; ++i) {
-                        fragmentShaderText +=
-                            "    for (int i = 0; i < " + samplesPerInterval + "; ++i) {\n" +
-                            "       vec2 modulatedCoords = qt_TexCoord0 - motionBlurFactor *\n" +
-                            "                              mix(vec2(x" + i + ", y" + i + "), vec2(x" + (i+1) + ", y" + (i+1) + "), float(i) / " + samplesPerInterval + ".0);\n"
-                        if (gammaCorrect) {
-                            fragmentShaderText +=
-                                "       vec4 sample = texture2D(source, modulatedCoords);\n" +
-                                "       color += vec4(sample.rgb * sample.rgb, sample.a);\n";
+                        if (samplesPerInterval < 4) {
+                            for (var j = 0; j < samplesPerInterval; ++j) {
+                                fragmentShaderText +=
+                                    "   {\n" +
+                                    "       vec2 modulatedCoords = qt_TexCoord0 - motionBlurFactor *\n" +
+                                    "                              mix(vec2(x" + i + ", y" + i + "), vec2(x" + (i+1) + ", y" + (i+1) + "), " + j + ".0 / " + samplesPerInterval + ".0);\n"
+
+                                if (gammaCorrect) {
+                                    fragmentShaderText +=
+                                        "       vec4 sample = texture2D(source, modulatedCoords);\n" +
+                                        "       color += vec4(sample.rgb * sample.rgb, sample.a);\n";
+                                } else {
+                                    fragmentShaderText +=
+                                        "       color += texture2D(source, modulatedCoords);\n";
+                                }
+
+                                fragmentShaderText +=
+                                    "    }\n";
+                            }
                         } else {
                             fragmentShaderText +=
-                                "       color += texture2D(source, modulatedCoords);\n";
-                        }
+                                "    for (int i = 0; i < " + samplesPerInterval + "; ++i) {\n" +
+                                "       vec2 modulatedCoords = qt_TexCoord0 - motionBlurFactor *\n" +
+                                "                              mix(vec2(x" + i + ", y" + i + "), vec2(x" + (i+1) + ", y" + (i+1) + "), float(i) / " + samplesPerInterval + ".0);\n"
+                            if (gammaCorrect) {
+                                fragmentShaderText +=
+                                    "       vec4 sample = texture2D(source, modulatedCoords);\n" +
+                                    "       color += vec4(sample.rgb * sample.rgb, sample.a);\n";
+                            } else {
+                                fragmentShaderText +=
+                                    "       color += texture2D(source, modulatedCoords);\n";
+                            }
 
-                        fragmentShaderText +=
-                            "    }\n";
+                            fragmentShaderText +=
+                                "    }\n";
+                        }
                     }
 
                     if (gammaCorrect) {
