@@ -186,6 +186,7 @@ Rectangle {
 
             Component.onCompleted: generateShader()
             onBlurSamplesChanged: generateShader()
+            onGammaCorrectChanged: generateShader()
             onMotionBlurEnabledChanged: generateShader()
 
             Behavior on motionBlurFactor { NumberAnimation {} }
@@ -398,6 +399,13 @@ Rectangle {
                 target: contents
                 checked: true
                 property: "blurredPanes"
+            }
+
+            Toggle {
+                text: "Gamma correct"
+                target: effect
+                checked: false
+                property: "gammaCorrect"
             }
 
             Button {
