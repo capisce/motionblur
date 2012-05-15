@@ -35,6 +35,8 @@ ShaderEffectSource {
 
     property real blurFactor: enabled
 
+    visible: blurFactor > 0.001
+
     Behavior on blurFactor { NumberAnimation {} }
 
     ShaderEffect {

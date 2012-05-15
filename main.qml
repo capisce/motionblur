@@ -176,7 +176,13 @@ Rectangle {
             property real dty: 0.5 * avy / 256
             property int blurSamples
 
-            property bool motionBlurEnabled: motionBlurFactor > 0.001
+            property bool motionBlurEnabled: motionBlurFactor > 0.001 && blurSamples >= 6
+
+            Binding {
+                target: controller
+                property: "motionBlurEnabled"
+                value: effect.motionBlurEnabled
+            }
 
             x: controller.bounds.x + (controller.bounds.width - avx) * 0.5 - 128
             y: controller.bounds.y + (controller.bounds.height - avy) * 0.5 - 128
@@ -221,7 +227,7 @@ Rectangle {
                     "varying highp vec2 qt_TexCoord0;\n" +
                     "uniform lowp float motionBlurFactor;\n";
 
-                if (motionBlurEnabled && blurSamples >= 6) {
+                if (motionBlurEnabled) {
                     var samplesPerInterval = Math.floor(((motionBlurEnabled ? blurSamples : 1) - 1) / 5)
 
                     fragmentShaderText +=
@@ -662,10 +668,11 @@ Rectangle {
                 hologramToggle.checked = false
             } else if (calibrationPane.targetSamples <= 16 && wobbleToggle.checked) {
                 wobbleToggle.checked = false
-            } else {
+            } else if (blurSlider.value > 1) {
                 blurSlider.value = Math.max(1, Math.floor(effect.blurSamples * 0.8));
+            } else {
+                initTimer.restart();
             }
-            initTimer.restart();
         }
     }
 

@@ -35,6 +35,7 @@ class Controller : public QObject
     Q_OBJECT
 
     Q_PROPERTY(bool frameSkipEnabled READ frameSkipEnabled WRITE setFrameSkipEnabled NOTIFY frameSkipEnabledChanged)
+    Q_PROPERTY(bool motionBlurEnabled READ motionBlurEnabled WRITE setMotionBlurEnabled NOTIFY motionBlurEnabledChanged)
     Q_PROPERTY(bool followMouse READ followMouse WRITE setFollowMouse NOTIFY followMouseChanged)
     Q_PROPERTY(bool paused READ paused WRITE setPaused NOTIFY pausedChanged)
     Q_PROPERTY(qreal velocity READ velocity WRITE setVelocity NOTIFY velocityChanged)
@@ -51,6 +52,7 @@ public:
     Controller(QWindow *view);
 
     GETTER(bool, frameSkipEnabled)
+    GETTER(bool, motionBlurEnabled)
     GETTER(bool, followMouse)
     GETTER(bool, paused)
     GETTER(int, skippedFrames)
@@ -73,6 +75,11 @@ public slots:
         SETTER(frameSkipEnabled)
     }
 
+    void setMotionBlurEnabled(bool value)
+    {
+        SETTER(motionBlurEnabled)
+    }
+
     void setVelocity(qreal value)
     {
         SETTER(velocity)
@@ -90,6 +97,7 @@ public slots:
 
 signals:
     void frameSkipEnabledChanged();
+    void motionBlurEnabledChanged();
     void velocityChanged();
     void positionsChanged();
     void boundsChanged();
@@ -103,6 +111,7 @@ private:
     QWindow *m_view;
 
     bool m_frameSkipEnabled;
+    bool m_motionBlurEnabled;
     bool m_followMouse;
     bool m_paused;
     qreal m_velocity;
@@ -130,6 +139,7 @@ private:
 Controller::Controller(QWindow *view)
     : m_view(view)
     , m_frameSkipEnabled(false)
+    , m_motionBlurEnabled(true)
     , m_followMouse(false)
     , m_paused(false)
     , m_velocity(0.02)
@@ -190,10 +200,13 @@ void Controller::step()
 
     m_bounds = m_bounds.normalized();
 
-    for (int i = 0; i < m_positions.size(); ++i)
-        m_pos[i] = (m_positions.at(i) - m_bounds.center()) * (1 / 256.);
+    if (m_motionBlurEnabled) {
+        for (int i = 0; i < m_positions.size(); ++i)
+            m_pos[i] = (m_positions.at(i) - m_bounds.center()) * (1 / 256.);
 
-    emit positionsChanged();
+        emit positionsChanged();
+    }
+
     emit boundsChanged();
 
     m_mousePos = m_mouseTrail.currentPosition();
