@@ -671,8 +671,9 @@ Rectangle {
             } else if (blurSlider.value > 1) {
                 blurSlider.value = Math.max(1, Math.floor(effect.blurSamples * 0.8));
             } else {
-                initTimer.restart();
+                return;
             }
+            initTimer.restart();
         }
     }
 
