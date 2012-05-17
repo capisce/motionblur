@@ -167,10 +167,14 @@ void Controller::step()
     int width = m_view->width();
     int height = m_view->height();
 
-    if (!m_positions.isEmpty())
+    if (m_positions.size() > 5)
         m_positions = m_positions.mid(5);
+    else
+        m_positions.clear();
 
-    for (int i = 0; i < 5; ++i) {
+    int steps = m_motionBlurEnabled ? 5 : 1;
+    qreal timescale = (m_frameSkipEnabled ? 2 * m_velocity : m_velocity) * 120. / (steps * m_view->screen()->refreshRate());
+    for (int i = 0; i < steps; ++i) {
         qreal x, y;
 
         if (m_followMouse) {
@@ -182,29 +186,31 @@ void Controller::step()
             x = m_mousePos.x();
             y = m_mousePos.y();
         } else {
-            m_t += (m_frameSkipEnabled ? 2 * m_velocity : m_velocity) * 120. / (5 * m_view->screen()->refreshRate());
+            m_t += timescale;
 
-            x = tw/2 + (width - tw) * (0.5 + 0.5 * qSin(m_t));
-            y = th/2 + (height - th) * (0.5 + 0.5 * qSin(0.47 * m_t));
+            x = 0.5 * (tw + (width - tw) * (1 + qSin(m_t)));
+            y = 0.5 * (th + (height - th) * (1 + qSin(0.47 * m_t)));
         }
 
         m_positions << QPointF(x, y);
     }
 
-    if (m_positions.size() < 6)
-        m_positions.prepend(m_positions.first());
-
-    m_bounds = QRectF(m_positions.at(0), m_positions.at(1));
-    for (int i = 2; i < m_positions.size(); i += 2)
-        m_bounds = m_bounds.united(QRectF(m_positions.at(i), m_positions.at(i+1)));
-
-    m_bounds = m_bounds.normalized();
-
     if (m_motionBlurEnabled) {
+        if (m_positions.size() < 6)
+            m_positions.prepend(m_positions.first());
+
+        m_bounds = QRectF(m_positions.at(0), m_positions.at(1));
+        for (int i = 2; i < m_positions.size(); i += 2)
+            m_bounds = m_bounds.united(QRectF(m_positions.at(i), m_positions.at(i+1)));
+
+        m_bounds = m_bounds.normalized();
+
         for (int i = 0; i < m_positions.size(); ++i)
             m_pos[i] = (m_positions.at(i) - m_bounds.center()) * (1 / 256.);
 
         emit positionsChanged();
+    } else {
+        m_bounds = QRectF(m_positions.at(0), QSizeF());
     }
 
     emit boundsChanged();
@@ -257,6 +263,10 @@ int main(int argc, char **argv)
     QGuiApplication app(argc, argv);
 
     View view;
+
+    QSurfaceFormat format = view.requestedFormat();
+    format.setSwapBehavior(QSurfaceFormat::TripleBuffer);
+    view.setFormat(format);
 
     Controller controller(&view);
 

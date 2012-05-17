@@ -23,6 +23,7 @@
 import QtQuick 2.0
 import QtUiComponents 1.0
 import QtUiStyle 1.0
+import QtQuick.Window 2.0
 
 Rectangle {
     id: root
@@ -39,6 +40,8 @@ Rectangle {
 
         Image {
             source: "background.jpg"
+            sourceSize.width: Screen.width
+            sourceSize.height: Screen.height
             smooth: true
             anchors.fill: parent
         }
@@ -66,19 +69,22 @@ Rectangle {
         ShaderEffect {
             id: sourceeffect
 
-            width: 512
-            height: 512
+            width: effect.motionBlurEnabled ? 512 : 256
+            height: effect.motionBlurEnabled ? 512 : 256
+
+            x: controller.bounds.x + controller.bounds.width * 0.5 - 128
+            y: controller.bounds.y + controller.bounds.height * 0.5 - 128
 
             property variant source: shadersource
             property real time: root.time
             property real wobbleFactor
             property real hologramFactor
 
-            visible: false
+            visible: !effect.motionBlurEnabled
 
             property bool enabled: wobbleEnabled || hologramEnabled
 
-            layer.enabled: enabled
+            layer.enabled: effect.motionBlurEnabled
             layer.smooth: true
             layer.wrapMode: ShaderEffectSource.ClampToEdge
 
@@ -166,7 +172,7 @@ Rectangle {
             property real x5: controller.posF.x
             property real y5: controller.posF.y
 
-            property variant source: sourceeffect.enabled ? sourceeffect : shadersource
+            property variant source: motionBlurEnabled && sourceeffect.enabled ? sourceeffect : shadersource
             property real motionBlurFactor
 
             property real avx: controller.bounds.width
@@ -177,6 +183,7 @@ Rectangle {
             property int blurSamples
 
             property bool motionBlurEnabled: motionBlurFactor > 0.001 && blurSamples >= 6
+            visible: motionBlurEnabled
 
             Binding {
                 target: controller
@@ -251,8 +258,13 @@ Rectangle {
                         for (var i = 0; i < 5; ++i) {
                             for (var j = 0; j < samplesPerInterval; ++j) {
                                 var index = i * 5 + j;
-                                fragmentShaderText +=
-                                    "   vec2 modulatedCoords" + index + " = qt_TexCoord0 - motionBlurFactor * mix(vec2(x" + i + ", y" + i + "), vec2(x" + (i+1) + ", y" + (i+1) + "), " + j + ".0 / " + samplesPerInterval + ".0);\n"
+
+                                if (j == 0)
+                                    fragmentShaderText +=
+                                        "   vec2 modulatedCoords" + index + " = qt_TexCoord0 - motionBlurFactor * vec2(x" + i + ", y" + i + ");\n"
+                                else
+                                    fragmentShaderText +=
+                                        "   vec2 modulatedCoords" + index + " = qt_TexCoord0 - motionBlurFactor * mix(vec2(x" + i + ", y" + i + "), vec2(x" + (i+1) + ", y" + (i+1) + "), " + j + ".0 / " + samplesPerInterval + ".0);\n"
 
                                 if (gammaCorrect) {
                                     fragmentShaderText +=
@@ -467,7 +479,7 @@ Rectangle {
                     root.initialized = false
                     root.panesEnabled = false
                     controlspane.hovered = false
-                    blurSlider.value = 50
+                    blurSlider.value = 20
                     motionBlurToggle.checked = true
                     wobbleToggle.checked = true
                     hologramToggle.checked = true
@@ -528,11 +540,11 @@ Rectangle {
             
             PaneSlider {
                 id: blurSlider
-                value: 50
-                minimum: 1
-                maximum: 200
+                value: 21
+                minimum: 6
+                maximum: 181
                 tickInterval: 10
-                stepSize: 1
+                stepSize: 5
                 target: effect
                 property: "blurSamples"
                 instantaneous: false
@@ -618,7 +630,7 @@ Rectangle {
             target: effect
             onBlurSamplesChanged: {
                 if (root.calibrating)
-                    calibrationPane.targetSamples = Math.max(1, Math.floor(effect.blurSamples * 0.8))
+                    calibrationPane.targetSamples = Math.max(6, effect.blurSamples - 5)
             }
         }
 
@@ -668,8 +680,8 @@ Rectangle {
                 hologramToggle.checked = false
             } else if (calibrationPane.targetSamples <= 16 && wobbleToggle.checked) {
                 wobbleToggle.checked = false
-            } else if (blurSlider.value > 1) {
-                blurSlider.value = Math.max(1, Math.floor(effect.blurSamples * 0.8));
+            } else if (blurSlider.value > 6) {
+                blurSlider.value = Math.max(6, Math.floor(effect.blurSamples * 0.8));
             } else {
                 return;
             }
