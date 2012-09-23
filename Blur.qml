@@ -70,9 +70,9 @@ ShaderEffectSource {
             "uniform lowp float dy;\n" +
             "varying highp vec2 qt_TexCoord0;\n" +
             "void main() {\n" +
-            "    vec4 color = vec4(0.0);\n" +
+            "    mediump vec4 color = vec4(0.0);\n" +
             "    for (int i = 0; i < " + blurSamples + "; ++i) {\n" +
-            "        vec2 modulatedCoords = qt_TexCoord0 + vec2(dx, dy) * (float(i) * (1.0 / " + (blurSamples - 1) + ".0) - 0.5);\n" +
+            "        highp vec2 modulatedCoords = qt_TexCoord0 + vec2(dx, dy) * (float(i) * (1.0 / " + (blurSamples - 1) + ".0) - 0.5);\n" +
             "        color += texture2D(source, modulatedCoords);\n" +
             "    }\n" +
             "    gl_FragColor = qt_Opacity * color / " + blurSamples + ".0;\n" +

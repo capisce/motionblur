@@ -109,23 +109,23 @@ Rectangle {
 
                 if (wobbleEnabled) {
                     fragmentShaderText +=
-                        "vec2 wobbleCoords(vec2 coords) {\n" +
+                        "highp vec2 wobbleCoords(vec2 coords) {\n" +
                         "   return coords + wobbleFactor * vec2(0.05 * sin(1.0 * cos(25.0 * (coords.y * coords.y + 0.25 * time))), 0.03 * sin(1.0 * cos(7.0 * (coords.x + 0.23 * time))));\n" +
                         "}\n";
                 }
 
                 if (wobbleEnabled || hologramEnabled) {
-                    fragmentShaderText += "vec4 sample(vec2 coords) {\n";
+                    fragmentShaderText += "highp vec4 sample(vec2 coords) {\n";
 
                     if (hologramEnabled) {
                         fragmentShaderText +=
-                            "   vec2 transformed = 100.0 * vec2(coords.x + 0.05 * sin(4.0 * time + 10.0 * coords.y), coords.y);\n" +
-                            "   vec2 mod = transformed - floor(transformed);\n" +
-                            "   vec2 dist = mod - vec2(0.5);\n" +
-                            "   vec4 delta = mix(vec4(1.0), vec4(1.0, 0.7, 0.7, dot(dist, dist)), hologramFactor);\n";
+                            "   highp vec2 transformed = 100.0 * vec2(coords.x + 0.05 * sin(4.0 * time + 10.0 * coords.y), coords.y);\n" +
+                            "   highp vec2 mod = transformed - floor(transformed);\n" +
+                            "   highp vec2 dist = mod - vec2(0.5);\n" +
+                            "   highp vec4 delta = mix(vec4(1.0), vec4(1.0, 0.7, 0.7, dot(dist, dist)), hologramFactor);\n";
                     } else {
                         fragmentShaderText +=
-                            "   vec4 delta = vec4(1.0);\n";
+                            "   highp vec4 delta = vec4(1.0);\n";
                     }
 
                     if (wobbleEnabled) {
@@ -139,7 +139,7 @@ Rectangle {
                     fragmentShaderText += "}\n";
                 } else {
                     fragmentShaderText +=
-                        "vec4 sample(vec2 coords) {\n" +
+                        "highp vec4 sample(vec2 coords) {\n" +
                         "   return texture2D(source, coords);\n" +
                         "}\n";
                 }
@@ -252,7 +252,7 @@ Rectangle {
                         "uniform mediump float y5;\n" +
                         "void main()\n" +
                         "{\n" +
-                        "    vec4 color = vec4(0.0);\n";
+                        "    highp vec4 color = vec4(0.0);\n";
 
                     if (samplesPerInterval < 3) {
                         for (var i = 0; i < 5; ++i) {
@@ -261,14 +261,14 @@ Rectangle {
 
                                 if (j == 0)
                                     fragmentShaderText +=
-                                        "   vec2 modulatedCoords" + index + " = qt_TexCoord0 - motionBlurFactor * vec2(x" + i + ", y" + i + ");\n"
+                                        "   highp vec2 modulatedCoords" + index + " = qt_TexCoord0 - motionBlurFactor * vec2(x" + i + ", y" + i + ");\n"
                                 else
                                     fragmentShaderText +=
-                                        "   vec2 modulatedCoords" + index + " = qt_TexCoord0 - motionBlurFactor * mix(vec2(x" + i + ", y" + i + "), vec2(x" + (i+1) + ", y" + (i+1) + "), " + j + ".0 / " + samplesPerInterval + ".0);\n"
+                                        "   highp vec2 modulatedCoords" + index + " = qt_TexCoord0 - motionBlurFactor * mix(vec2(x" + i + ", y" + i + "), vec2(x" + (i+1) + ", y" + (i+1) + "), " + j + ".0 / " + samplesPerInterval + ".0);\n"
 
                                 if (gammaCorrect) {
                                     fragmentShaderText +=
-                                        "   vec4 sample" + index + " = texture2D(source, modulatedCoords" + index + ");\n" +
+                                        "   highp vec4 sample" + index + " = texture2D(source, modulatedCoords" + index + ");\n" +
                                         "   color += vec4(sample" + index + ".rgb * sample" + index + ".rgb, sample" + index + ".a);\n";
                                 } else {
                                     fragmentShaderText +=
@@ -282,10 +282,10 @@ Rectangle {
 
                         for (var i = 0; i < 5; ++i) {
                             fragmentShaderText +=
-                                "       vec2 modulatedCoords" + i + " = qt_TexCoord0 - motionBlurFactor * mix(vec2(x" + i + ", y" + i + "), vec2(x" + (i+1) + ", y" + (i+1) + "), float(i) / " + samplesPerInterval + ".0);\n"
+                                "       highp vec2 modulatedCoords" + i + " = qt_TexCoord0 - motionBlurFactor * mix(vec2(x" + i + ", y" + i + "), vec2(x" + (i+1) + ", y" + (i+1) + "), float(i) / " + samplesPerInterval + ".0);\n"
                             if (gammaCorrect) {
                                 fragmentShaderText +=
-                                    "       vec4 sample" + i + " = texture2D(source, modulatedCoords" + i + ");\n" +
+                                    "       highp vec4 sample" + i + " = texture2D(source, modulatedCoords" + i + ");\n" +
                                     "       color += vec4(sample" + i + ".rgb * sample" + i + ".rgb, sample" + i + ".a);\n";
                             } else {
                                 fragmentShaderText +=
@@ -299,7 +299,7 @@ Rectangle {
 
                     if (gammaCorrect) {
                         fragmentShaderText +=
-                            "    vec4 sample = texture2D(source, qt_TexCoord0 - motionBlurFactor * vec2(x5, y5));\n"
+                            "    highp vec4 sample = texture2D(source, qt_TexCoord0 - motionBlurFactor * vec2(x5, y5));\n"
                             "    color += vec4(sample.rgb * sample.rgb, sample.a);\n";
                     } else {
                         fragmentShaderText +=
