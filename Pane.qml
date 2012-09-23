@@ -39,8 +39,8 @@ Rectangle {
     Behavior on opacity { NumberAnimation {} }
 
     MouseArea {
-        onEntered: pane.hovered = true
-        hoverEnabled: pane.enabled
+        onPressed: pane.hovered = true
+        enabled: parent.opacity != 0
         anchors.fill: parent
     }
 }

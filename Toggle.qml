@@ -21,13 +21,52 @@
  */
 
 import QtQuick 2.0
-import QtUiComponents 1.0
-import QtUiStyle 1.0
 
-CheckBox {
+Row {
     id: checkBox
     width: 140
-    height: 24
+    height: 32
+
+    property bool checked: false
+    property string text
+
+    Text  {
+        text: parent.text
+        anchors.verticalCenter: parent.verticalCenter
+    }
+
+    Rectangle {
+        id: spacing
+        color: "transparent"
+        height: 8
+        width: 8
+    }
+
+    Rectangle {
+        anchors.verticalCenter: parent.verticalCenter
+
+        color: "transparent"
+        border.color: "gray"
+        border.width: 2
+
+        width: parent.height
+        height: parent.height
+
+        Rectangle {
+            anchors.centerIn: parent
+            width: parent.width - 4
+            height: parent.height - 4
+            color: "darkgray"
+            visible: checkBox.checked
+        }
+
+        MouseArea {
+            anchors.fill: parent
+            onClicked: {
+                checkBox.checked = !checkBox.checked
+            }
+        }
+    }
 
     property var target
     property string property

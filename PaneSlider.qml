@@ -21,21 +21,56 @@
  */
 
 import QtQuick 2.0
-import QtUiComponents 1.0
-import QtUiStyle 1.0
 
-Slider {
+Item {
     id: slider
+
+    Rectangle {
+        id: groove
+        x: 2
+        width: parent.width - 4
+
+        anchors.verticalCenter: parent.verticalCenter
+        height: 3
+        color: "lightGray"
+    }
+
+    Rectangle {
+        x: 2 + (parent.width - 4) * (parent.value - parent.minimum) / (parent.maximum - parent.minimum)
+        id: handle
+        anchors.verticalCenter: parent.verticalCenter
+        color: "lightsteelblue"
+
+        radius: 2
+
+        height: 28
+        width: 22
+    }
+
+    MouseArea {
+        anchors.verticalCenter: parent.verticalCenter
+        x: 2
+        width: parent.width - 4
+        height: 32
+        onPressed: slider.pressed = true
+        onReleased: slider.pressed = false
+        onPositionChanged: {
+            var x = (mouse.x - handle.width / 2) / width
+            slider.value = Math.min(Math.max(x * (slider.maximum - slider.minimum), slider.minimum), slider.maximum)
+        }
+    }
 
     width: parent.width - 20
     height: 40
 
-    tickInterval: maximum * 0.1
-    stepSize: maximum * 0.001
-
-    tickPosition: SliderStyle.TicksAbove
+    property var stepSize: maximum * 0.001
+    property bool pressed: false
 
     property var target
+    property real value: 0
+    property real minimum: 0
+    property real maximum: 100
+
     property string property
     property bool instantaneous: true
     property real current: value

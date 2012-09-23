@@ -21,8 +21,6 @@
  */
 
 import QtQuick 2.0
-import QtUiComponents 1.0
-import QtUiStyle 1.0
 import QtQuick.Window 2.0
 
 Rectangle {
@@ -342,7 +340,7 @@ Rectangle {
     MouseArea {
         anchors.fill: parent
         hoverEnabled: true
-        onEntered: {
+        onPressed: {
             velocitypane.hovered = false
             controlspane.hovered = false
         }
@@ -543,7 +541,6 @@ Rectangle {
                 value: 21
                 minimum: 6
                 maximum: 181
-                tickInterval: 10
                 stepSize: 5
                 target: effect
                 property: "blurSamples"

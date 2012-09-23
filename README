@@ -4,8 +4,6 @@ Contains a couple of effects, but specifically show cases the effect of motion b
 
 Use run.sh for the smoothest result, it sets some environment variables that attempt to enable vsync (on NVIDIA drivers) and threaded rendering in the Qt Quick 2 scene graph.
 
-Depends on git://code.openbossa.org/projects/qtquickstyles.git
-
 background.jpg is from Elephant's Dream, under the Creative Commons Attribution 2.5 license
 
 earth.png is from NASA, see http://visibleearth.nasa.gov/view.php?id=57723
