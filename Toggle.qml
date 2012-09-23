@@ -26,46 +26,48 @@ Row {
     id: checkBox
     width: 140
     height: 32
+    spacing: 8
 
     property bool checked: false
     property string text
 
-    Text  {
-        text: parent.text
-        anchors.verticalCenter: parent.verticalCenter
-    }
-
-    Rectangle {
-        id: spacing
-        color: "transparent"
-        height: 8
-        width: 8
-    }
-
     Rectangle {
         anchors.verticalCenter: parent.verticalCenter
 
         color: "transparent"
-        border.color: "gray"
+        antialiasing: true
+        border.color: "lightgray"
         border.width: 2
 
-        width: parent.height
-        height: parent.height
+        width: 24
+        height: 24
+
+        radius: 4
 
         Rectangle {
             anchors.centerIn: parent
             width: parent.width - 4
             height: parent.height - 4
-            color: "darkgray"
+            color: "lightsteelblue"
+            antialiasing: true
             visible: checkBox.checked
+
+            radius: 4
         }
 
         MouseArea {
-            anchors.fill: parent
+            anchors.centerIn: parent
+            width: checkBox.height
+            height: checkBox.height
             onClicked: {
                 checkBox.checked = !checkBox.checked
             }
         }
+    }
+
+    Text  {
+        text: parent.text
+        anchors.verticalCenter: parent.verticalCenter
     }
 
     property var target

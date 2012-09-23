@@ -36,15 +36,16 @@ Item {
     }
 
     Rectangle {
-        x: 2 + (parent.width - 4) * (parent.value - parent.minimum) / (parent.maximum - parent.minimum)
+        x: 2 + (parent.width - 4 - width) * (parent.value - parent.minimum) / (parent.maximum - parent.minimum)
         id: handle
         anchors.verticalCenter: parent.verticalCenter
         color: "lightsteelblue"
 
-        radius: 2
+        antialiasing: true
+        radius: 4
 
         height: 28
-        width: 22
+        width: 20
     }
 
     MouseArea {
@@ -55,7 +56,7 @@ Item {
         onPressed: slider.pressed = true
         onReleased: slider.pressed = false
         onPositionChanged: {
-            var x = (mouse.x - handle.width / 2) / width
+            var x = (mouse.x - handle.width / 2) / (width - handle.width)
             slider.value = Math.min(Math.max(x * (slider.maximum - slider.minimum), slider.minimum), slider.maximum)
         }
     }
