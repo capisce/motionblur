@@ -30,6 +30,9 @@ Rectangle {
     property bool panesEnabled: false
     property bool calibrating: true
 
+    width: 800
+    height: 600
+
     Item {
         id: contents
         anchors.fill: parent
