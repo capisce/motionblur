@@ -110,13 +110,13 @@ Rectangle {
 
                 if (wobbleEnabled) {
                     fragmentShaderText +=
-                        "highp vec2 wobbleCoords(vec2 coords) {\n" +
+                        "highp vec2 wobbleCoords(highp vec2 coords) {\n" +
                         "   return coords + wobbleFactor * vec2(0.05 * sin(1.0 * cos(25.0 * (coords.y * coords.y + 0.25 * time))), 0.03 * sin(1.0 * cos(7.0 * (coords.x + 0.23 * time))));\n" +
                         "}\n";
                 }
 
                 if (wobbleEnabled || hologramEnabled) {
-                    fragmentShaderText += "highp vec4 sample(vec2 coords) {\n";
+                    fragmentShaderText += "highp vec4 sample(highp vec2 coords) {\n";
 
                     if (hologramEnabled) {
                         fragmentShaderText +=
@@ -140,7 +140,7 @@ Rectangle {
                     fragmentShaderText += "}\n";
                 } else {
                     fragmentShaderText +=
-                        "highp vec4 sample(vec2 coords) {\n" +
+                        "highp vec4 sample(highp vec2 coords) {\n" +
                         "   return texture2D(source, coords);\n" +
                         "}\n";
                 }
